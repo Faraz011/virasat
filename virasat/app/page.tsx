@@ -16,19 +16,19 @@ export default function HomePage() {
               Virasat
             </Link>
             <nav className="hidden md:flex gap-6">
-              <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
+              <Link href="/home" className="text-sm font-medium hover:underline underline-offset-4">
                 Home
               </Link>
-              <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
+              <Link href="/collection" className="text-sm font-medium hover:underline underline-offset-4">
                 Collections
               </Link>
-              <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
+              <Link href="/silk sarees" className="text-sm font-medium hover:underline underline-offset-4">
                 Silk Sarees
               </Link>
-              <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
+              <Link href="cotton sarees" className="text-sm font-medium hover:underline underline-offset-4">
                 Cotton Sarees
               </Link>
-              <Link href="#" className="text-sm font-medium hover:underline underline-offset-4">
+              <Link href="our artisans" className="text-sm font-medium hover:underline underline-offset-4">
                 Our Artisans
               </Link>
             </nav>
@@ -41,7 +41,7 @@ export default function HomePage() {
                 <span className="sr-only">Search</span>
               </Button>
             </form>
-            <Link href="#" className="flex items-center gap-1 text-sm font-medium">
+            <Link href="/register" className="flex items-center gap-1 text-sm font-medium">
               <span className="hidden sm:inline">Account</span>
             </Link>
             <Link href="#" className="relative">
@@ -64,7 +64,7 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-black/30 z-10" />
           <div className="relative h-[600px] w-full overflow-hidden">
             <img
-              src="/placeholder.svg?height=600&width=1920"
+              src="/photo.jpg?height=600&width=1920"
               alt="Handwoven Banarasi Silk Saree"
               className="h-full w-full object-cover"
             />
@@ -85,7 +85,7 @@ export default function HomePage() {
                     Explore Collection
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <Button size="lg" variant="outline" className="text-white border-white hover:bg-white/10">
+                  <Button size="lg" variant="outline" className="text-black border-white hover:bg-white/90">
                     Our Story
                   </Button>
                 </div>
@@ -128,7 +128,7 @@ export default function HomePage() {
                 <Link key={category.name} href="#" className="group relative overflow-hidden rounded-lg">
                   <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors z-10" />
                   <img
-                    src={category.image || "/placeholder.svg"}
+                    src={category.image || "/photo3.jpg"}
                     alt={category.name}
                     className="h-[250px] w-full object-cover transition-transform group-hover:scale-105"
                   />
@@ -220,7 +220,7 @@ export default function HomePage() {
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div className="relative h-[400px] rounded-lg overflow-hidden">
                 <img
-                  src="/placeholder.svg?height=400&width=600"
+                  src="/photo2.jpeg?height=400&width=600"
                   alt="Master weaver at work"
                   className="h-full w-full object-cover"
                 />
@@ -273,7 +273,7 @@ export default function HomePage() {
               </div>
               <div className="relative rounded-lg overflow-hidden group h-[300px]">
                 <img
-                  src="/placeholder.svg?height=300&width=400"
+                  src="/saree.jpg?height=300&width=400"
                   alt="Bridal Collection"
                   className="h-full w-full object-cover transition-transform group-hover:scale-105"
                 />
@@ -532,6 +532,7 @@ export default function HomePage() {
     </div>
   )
 }
+
 
 // Sample data
 const sareeCategories = [
