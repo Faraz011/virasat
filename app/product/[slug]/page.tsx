@@ -32,8 +32,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const productImages = await getProductImages(product.id)
 
   return (
-    <div className="container py-8">
-      <div className="grid md:grid-cols-2 gap-8">
+    <div className="container py-6 md:py-8 px-4 md:px-6">
+      <div className="grid md:grid-cols-2 gap-6 md:gap-8">
         <div className="space-y-4">
           <div className="aspect-square overflow-hidden rounded-lg">
             <img
@@ -57,10 +57,10 @@ export default async function ProductPage({ params }: { params: { slug: string }
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           <div>
             <p className="text-sm text-muted-foreground">{product.category_name}</p>
-            <h1 className="text-3xl font-serif font-bold mt-1">{product.name}</h1>
+            <h1 className="text-2xl md:text-3xl font-serif font-bold mt-1">{product.name}</h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -75,8 +75,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
             <span className="text-sm text-muted-foreground">({product.review_count} reviews)</span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-3xl font-bold">₹{product.price.toLocaleString("en-IN")}</span>
+          <div className="flex items-center flex-wrap gap-3">
+            <span className="text-2xl md:text-3xl font-bold">₹{product.price.toLocaleString("en-IN")}</span>
             {product.original_price && (
               <span className="text-lg text-muted-foreground line-through">
                 ₹{product.original_price.toLocaleString("en-IN")}

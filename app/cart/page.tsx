@@ -81,9 +81,9 @@ export default function CartPage() {
   }
 
   return (
-    <div className="container py-8">
-      <div className="flex flex-col gap-2 mb-8">
-        <h1 className="text-3xl font-serif font-bold tracking-tight">Your Cart</h1>
+    <div className="container py-6 md:py-8 px-4 md:px-6">
+      <div className="flex flex-col gap-2 mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">Your Cart</h1>
         <p className="text-muted-foreground">Review and modify your items before checkout</p>
       </div>
 
@@ -97,10 +97,10 @@ export default function CartPage() {
           </Button>
         </div>
       ) : (
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-6 md:gap-8">
           <div className="md:col-span-2 space-y-6">
             <div className="rounded-lg border overflow-hidden">
-              <div className="bg-muted/50 px-4 py-3">
+              <div className="bg-muted/50 px-4 py-3 hidden md:block">
                 <div className="grid grid-cols-12 gap-4 text-sm font-medium">
                   <div className="col-span-6">Product</div>
                   <div className="col-span-2 text-center">Price</div>
@@ -112,22 +112,28 @@ export default function CartPage() {
               <div className="divide-y">
                 {items.map((item) => (
                   <div key={item.id} className="p-4">
-                    <div className="grid grid-cols-12 gap-4 items-center">
-                      <div className="col-span-6">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                      <div className="md:col-span-6">
                         <div className="flex gap-4 items-center">
-                          <div className="h-20 w-16 overflow-hidden rounded-md">
+                          <div className="h-20 w-16 overflow-hidden rounded-md flex-shrink-0">
                             <img
                               src={item.image_url || "/placeholder.svg?height=80&width=64"}
                               alt={item.name}
                               className="h-full w-full object-cover"
                             />
                           </div>
-                          <div>
+                          <div className="flex-1">
                             <h3 className="font-medium">
                               <Link href={`/product/${item.slug}`} className="hover:underline">
                                 {item.name}
                               </Link>
                             </h3>
+                            <div className="flex justify-between items-center mt-1 md:hidden">
+                              <span className="text-sm">₹{item.price.toLocaleString("en-IN")}</span>
+                              <span className="text-sm font-medium">
+                                ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                              </span>
+                            </div>
                             <button
                               onClick={() => handleRemoveItem(item.id)}
                               className="text-sm text-muted-foreground hover:text-destructive flex items-center gap-1 mt-1"
@@ -137,9 +143,11 @@ export default function CartPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="col-span-2 text-center">₹{item.price.toLocaleString("en-IN")}</div>
-                      <div className="col-span-2">
-                        <div className="flex items-center justify-center gap-2">
+                      <div className="hidden md:block md:col-span-2 text-center">
+                        ₹{item.price.toLocaleString("en-IN")}
+                      </div>
+                      <div className="md:col-span-2">
+                        <div className="flex items-center justify-start md:justify-center gap-2">
                           <Button
                             variant="outline"
                             size="icon"
@@ -175,7 +183,7 @@ export default function CartPage() {
                           </Button>
                         </div>
                       </div>
-                      <div className="col-span-2 text-right font-medium">
+                      <div className="hidden md:block md:col-span-2 text-right font-medium">
                         ₹{(item.price * item.quantity).toLocaleString("en-IN")}
                       </div>
                     </div>
@@ -184,18 +192,18 @@ export default function CartPage() {
               </div>
             </div>
 
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={handleClearCart} disabled={isLoading}>
+            <div className="flex flex-col sm:flex-row justify-between gap-3">
+              <Button variant="outline" onClick={handleClearCart} disabled={isLoading} className="w-full sm:w-auto">
                 Clear Cart
               </Button>
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link href="/shop">Continue Shopping</Link>
               </Button>
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-lg border p-6 space-y-4">
+            <div className="rounded-lg border p-4 md:p-6 space-y-4">
               <h2 className="text-lg font-medium">Order Summary</h2>
               <Separator />
               <div className="space-y-2">

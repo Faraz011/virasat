@@ -185,19 +185,19 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container py-8">
-      <div className="flex flex-col gap-2 mb-8">
-        <h1 className="text-3xl font-serif font-bold tracking-tight">Checkout</h1>
+    <div className="container py-6 md:py-8 px-4 md:px-6">
+      <div className="flex flex-col gap-2 mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">Checkout</h1>
         <p className="text-muted-foreground">Complete your order by providing your shipping and payment details</p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8">
+      <div className="grid md:grid-cols-3 gap-6 md:gap-8">
         <div className="md:col-span-2">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="space-y-4">
                 <h2 className="text-xl font-medium">Contact Information</h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="firstName"
@@ -225,7 +225,7 @@ export default function CheckoutPage() {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="email"
@@ -388,7 +388,7 @@ export default function CheckoutPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-lg border p-6 space-y-4">
+          <div className="rounded-lg border p-4 md:p-6 space-y-4">
             <h2 className="text-lg font-medium">Order Summary</h2>
             <Separator />
             <div className="space-y-4">
@@ -402,7 +402,7 @@ export default function CheckoutPage() {
                     />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-sm font-medium">{item.name}</h3>
+                    <h3 className="text-sm font-medium line-clamp-1">{item.name}</h3>
                     <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
                     <p className="text-sm font-medium">₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
                   </div>

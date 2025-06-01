@@ -3,7 +3,7 @@ import Link from "next/link"
 export function Footer() {
   return (
     <footer className="border-t">
-      <div className="container py-8 md:py-12">
+      <div className="container py-8 md:py-12 px-4 md:px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <h3 className="text-lg font-medium font-serif">Shop</h3>
@@ -147,7 +147,7 @@ export function Footer() {
           </div>
         </div>
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-t mt-8 pt-8">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground text-center md:text-left">
             © 2025 Virasat. All rights reserved. Celebrating the art of handwoven sarees.
           </p>
           <div className="flex items-center gap-4">

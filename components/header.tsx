@@ -146,24 +146,32 @@ export function Header({ user }: { user: any }) {
               </Button>
             </form>
 
-            {mainNavLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn("text-lg font-medium", pathname === link.href && "font-bold")}
-                onClick={toggleMenu}
-              >
-                {link.name}
-              </Link>
-            ))}
+            <div className="space-y-3">
+              {mainNavLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "flex items-center py-2 text-base font-medium",
+                    pathname === link.href && "text-primary font-semibold",
+                  )}
+                  onClick={toggleMenu}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
 
             {/* Category section in mobile menu */}
             <div className="border-t pt-4 mt-2">
-              <h3 className="text-lg font-medium mb-4">Categories</h3>
-              <div className="grid gap-3">
+              <h3 className="text-base font-semibold mb-3">Categories</h3>
+              <div className="grid gap-2">
                 <Link
                   href="/categories"
-                  className={cn("text-base", pathname === "/categories" && "font-medium text-primary")}
+                  className={cn(
+                    "flex items-center py-1.5 text-sm",
+                    pathname === "/categories" && "text-primary font-medium",
+                  )}
                   onClick={toggleMenu}
                 >
                   All Categories
@@ -172,7 +180,10 @@ export function Header({ user }: { user: any }) {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={cn("text-base", pathname === link.href && "font-medium text-primary")}
+                    className={cn(
+                      "flex items-center py-1.5 text-sm",
+                      pathname === link.href && "text-primary font-medium",
+                    )}
                     onClick={toggleMenu}
                   >
                     {link.name}
@@ -181,23 +192,35 @@ export function Header({ user }: { user: any }) {
               </div>
             </div>
 
-            <div className="border-t pt-6 mt-6">
+            <div className="border-t pt-4 mt-2">
               {user ? (
-                <Link href="/account" className="flex items-center gap-2 text-lg font-medium">
+                <Link
+                  href="/account"
+                  className="flex items-center gap-2 py-2 text-base font-medium"
+                  onClick={toggleMenu}
+                >
                   <User className="h-5 w-5" />
                   My Account
                 </Link>
               ) : (
-                <>
-                  <Link href="/login" className="flex items-center gap-2 text-lg font-medium mb-4">
+                <div className="space-y-3">
+                  <Link
+                    href="/login"
+                    className="flex items-center gap-2 py-2 text-base font-medium"
+                    onClick={toggleMenu}
+                  >
                     <User className="h-5 w-5" />
                     Login
                   </Link>
-                  <Link href="/register" className="flex items-center gap-2 text-lg font-medium">
+                  <Link
+                    href="/register"
+                    className="flex items-center gap-2 py-2 text-base font-medium"
+                    onClick={toggleMenu}
+                  >
                     <User className="h-5 w-5" />
                     Register
                   </Link>
-                </>
+                </div>
               )}
             </div>
           </nav>
