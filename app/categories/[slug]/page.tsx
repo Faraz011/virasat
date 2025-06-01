@@ -105,8 +105,8 @@ export default async function CategoryPage({ params }: { params: { slug: string 
   }
 
   return (
-    <div className="container py-8">
-      <div className="flex flex-col gap-2 mb-8">
+    <div className="container py-6 md:py-8 px-4 md:px-6">
+      <div className="flex flex-col gap-2 mb-6 md:mb-8">
         <div className="flex items-center gap-2 mb-2">
           <Button variant="ghost" size="sm" className="gap-1" asChild>
             <Link href="/categories">
@@ -115,7 +115,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
             </Link>
           </Button>
         </div>
-        <h1 className="text-3xl font-serif font-bold tracking-tight">{category.name} Sarees</h1>
+        <h1 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">{category.name} Sarees</h1>
         {category.description && <p className="text-muted-foreground max-w-3xl">{category.description}</p>}
         {category.region && (
           <p className="text-sm text-muted-foreground">
@@ -125,26 +125,26 @@ export default async function CategoryPage({ params }: { params: { slug: string 
       </div>
 
       {/* Hero image for the category */}
-      <div className="relative h-[400px] w-full overflow-hidden rounded-lg mb-12">
+      <div className="relative h-[300px] md:h-[400px] w-full overflow-hidden rounded-lg mb-8 md:mb-12">
         <img
           src={category.image_url || `/placeholder.svg?height=400&width=1200&text=${encodeURIComponent(category.name)}`}
           alt={category.name}
           className="h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex items-center">
-          <div className="container">
-            <div className="max-w-lg text-white p-6">
-              <h2 className="text-3xl font-serif font-bold mb-2">{content.title}</h2>
-              <p className="text-xl text-white/90 mb-4">{content.subtitle}</p>
-              <p className="text-white/90">{content.description}</p>
-              <Button className="mt-6 bg-white text-black hover:bg-white/90">Shop Now</Button>
+          <div className="container px-4 md:px-6">
+            <div className="max-w-lg text-white p-4 md:p-6">
+              <h2 className="text-2xl md:text-3xl font-serif font-bold mb-2">{content.title}</h2>
+              <p className="text-lg md:text-xl text-white/90 mb-4">{content.subtitle}</p>
+              <p className="text-white/90 text-sm md:text-base">{content.description}</p>
+              <Button className="mt-4 md:mt-6 bg-white text-black hover:bg-white/90">Shop Now</Button>
             </div>
           </div>
         </div>
       </div>
 
       {/* Category Information Section */}
-      <div className="grid md:grid-cols-2 gap-8 mb-12">
+      <div className="grid md:grid-cols-2 gap-6 md:gap-8 mb-8 md:mb-12">
         <div>
           <h3 className="text-xl font-serif font-medium mb-4">About {category.name} Sarees</h3>
           <p className="text-muted-foreground mb-6">{content.history}</p>
@@ -167,7 +167,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
           )}
         </div>
 
-        <div className="relative h-[300px] overflow-hidden rounded-lg">
+        <div className="relative h-[250px] md:h-[300px] overflow-hidden rounded-lg">
           <img
             src={`/placeholder.svg?height=300&width=600&text=${encodeURIComponent(`${category.name} Craftsmanship`)}`}
             alt={`${category.name} Weaving Process`}

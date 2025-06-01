@@ -27,7 +27,7 @@ export function ProductCard({ product }: { product: Product }) {
   }
 
   return (
-    <Card className="overflow-hidden group border-0 shadow-sm">
+    <Card className="overflow-hidden group border-0 shadow-sm h-full flex flex-col">
       <div className="relative aspect-[3/4] overflow-hidden">
         <Link href={`/product/${product.slug}`}>
           <img
@@ -50,10 +50,10 @@ export function ProductCard({ product }: { product: Product }) {
           <span className="sr-only">Add to wishlist</span>
         </Button>
       </div>
-      <CardContent className="p-4">
-        <div className="space-y-2">
+      <CardContent className="p-4 flex-1 flex flex-col">
+        <div className="space-y-2 flex-1">
           <p className="text-sm text-muted-foreground">{product.category_name}</p>
-          <h3 className="font-medium">
+          <h3 className="font-medium line-clamp-2">
             <Link href={`/product/${product.slug}`} className="hover:underline">
               {product.name}
             </Link>
@@ -75,10 +75,10 @@ export function ProductCard({ product }: { product: Product }) {
             ))}
             <span className="text-xs text-muted-foreground ml-1">({product.review_count})</span>
           </div>
-          <Button className="w-full mt-2" onClick={handleAddToCart} disabled={isLoading || product.stock_quantity < 1}>
-            {isLoading ? "Adding..." : product.stock_quantity < 1 ? "Out of Stock" : "Add to Cart"}
-          </Button>
         </div>
+        <Button className="w-full mt-3" onClick={handleAddToCart} disabled={isLoading || product.stock_quantity < 1}>
+          {isLoading ? "Adding..." : product.stock_quantity < 1 ? "Out of Stock" : "Add to Cart"}
+        </Button>
       </CardContent>
     </Card>
   )

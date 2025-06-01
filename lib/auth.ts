@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 import { sql } from "./db"
 import bcrypt from "bcryptjs"
 import { SignJWT, jwtVerify } from "jose"
+import { createEmailVerificationToken, sendVerificationEmail } from "./email"
 
 const secretKey = new TextEncoder().encode(process.env.JWT_SECRET || "fallback_secret_key_for_development_only")
 
@@ -17,17 +18,23 @@ export async function createUser(email: string, password: string, firstName: str
   const hashedPassword = await hashPassword(password)
 
   const result = await sql`
-    INSERT INTO users (email, password_hash, first_name, last_name) 
-    VALUES (${email}, ${hashedPassword}, ${firstName}, ${lastName}) 
+    INSERT INTO users (email, password_hash, first_name, last_name, email_verified) 
+    VALUES (${email}, ${hashedPassword}, ${firstName}, ${lastName}, false) 
     RETURNING id, email, first_name, last_name
   `
 
-  return result[0]
+  const user = result[0]
+
+  // Create and send email verification token
+  const verificationToken = await createEmailVerificationToken(user.id, user.email)
+  await sendVerificationEmail(user.email, verificationToken)
+
+  return user
 }
 
 export async function getUserByEmail(email: string) {
   const result = await sql`
-    SELECT id, email, password_hash, first_name, last_name, is_admin 
+    SELECT id, email, password_hash, first_name, last_name, is_admin, email_verified, email_verified_at 
     FROM users 
     WHERE email = ${email}
   `
@@ -37,7 +44,7 @@ export async function getUserByEmail(email: string) {
 
 export async function getUserById(id: number) {
   const result = await sql`
-    SELECT id, email, first_name, last_name, phone, is_admin 
+    SELECT id, email, first_name, last_name, phone, is_admin, email_verified, email_verified_at 
     FROM users 
     WHERE id = ${id}
   `

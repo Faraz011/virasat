@@ -36,8 +36,8 @@ export default async function HomePage() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-black/30 z-10" />
-          <div className="relative h-[600px] w-full overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30 z-10" />
+          <div className="relative h-[400px] md:h-[600px] w-full overflow-hidden">
             <img
               src="/placeholder.svg?height=600&width=1920"
               alt="Handwoven Banarasi Silk Saree"
@@ -45,24 +45,28 @@ export default async function HomePage() {
             />
           </div>
           <div className="absolute inset-0 flex items-center z-20">
-            <div className="container">
+            <div className="container px-4 md:px-6">
               <div className="max-w-lg space-y-4 text-white">
                 <Badge className="bg-primary/80 text-primary-foreground hover:bg-primary/70">Heritage Collection</Badge>
-                <h1 className="text-4xl font-serif font-bold tracking-tight sm:text-5xl md:text-6xl">
+                <h1 className="text-3xl font-serif font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
                   Handwoven Elegance
                 </h1>
-                <p className="text-lg opacity-90">
+                <p className="text-base md:text-lg opacity-90">
                   Discover the timeless beauty of handcrafted sarees, woven with tradition and passion by master
                   artisans.
                 </p>
-                <div className="flex gap-4 pt-2">
-                  <Button size="lg" className="bg-white text-black hover:bg-white/90" asChild>
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <Button size="lg" className="bg-white text-black hover:bg-white/90 w-full sm:w-auto" asChild>
                     <Link href="/shop/featured">
                       Explore Collection
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
-                  <Button size="lg" variant="outline" className="text-white border-white hover:bg-white/10">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="text-white border-white hover:bg-white/10 w-full sm:w-auto"
+                  >
                     Our Story
                   </Button>
                 </div>
@@ -72,14 +76,14 @@ export default async function HomePage() {
         </section>
 
         {/* USP Section */}
-        <section className="py-8 bg-muted/30">
-          <div className="container">
+        <section className="py-6 md:py-8 bg-muted/30">
+          <div className="container px-4 md:px-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-              <div className="p-4">
+              <div className="p-4 border-b md:border-b-0 md:border-r border-muted-foreground/10 last:border-0">
                 <h3 className="font-medium">100% Authentic Handloom</h3>
                 <p className="text-sm text-muted-foreground">Certified handwoven sarees from traditional looms</p>
               </div>
-              <div className="p-4">
+              <div className="p-4 border-b md:border-b-0 md:border-r border-muted-foreground/10 last:border-0">
                 <h3 className="font-medium">Supporting 200+ Artisan Families</h3>
                 <p className="text-sm text-muted-foreground">Direct from weavers to your wardrobe</p>
               </div>
@@ -192,15 +196,15 @@ export default async function HomePage() {
 
         {/* Collections */}
         <section className="py-12 md:py-16 bg-muted/20">
-          <div className="container">
+          <div className="container px-4 md:px-6">
             <div className="flex flex-col gap-2 mb-8 text-center">
-              <h2 className="text-3xl font-serif font-bold tracking-tight">Seasonal Collections</h2>
+              <h2 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">Seasonal Collections</h2>
               <p className="text-muted-foreground mx-auto max-w-2xl">
                 Explore our specially curated collections for every occasion
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="relative rounded-lg overflow-hidden group h-[300px]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              <div className="relative rounded-lg overflow-hidden group h-[250px] md:h-[300px]">
                 <img
                   src="/placeholder.svg?height=300&width=400"
                   alt="Festive Collection"
@@ -331,20 +335,24 @@ export default async function HomePage() {
 
         {/* Newsletter Section */}
         <section className="py-12 md:py-16 bg-primary text-primary-foreground">
-          <div className="container">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
               <div className="space-y-2 text-center md:text-left">
                 <h2 className="text-2xl font-serif font-bold">Join Our Community</h2>
-                <p>Be the first to know about new collections, artisan stories, and exclusive offers</p>
+                <p className="text-sm md:text-base">
+                  Be the first to know about new collections, artisan stories, and exclusive offers
+                </p>
               </div>
               <div className="w-full md:w-auto">
-                <form className="flex gap-2 max-w-md mx-auto md:mx-0">
+                <form className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto md:mx-0">
                   <Input
                     type="email"
                     placeholder="Enter your email"
                     className="bg-primary-foreground text-foreground placeholder:text-muted-foreground"
                   />
-                  <Button variant="secondary">Subscribe</Button>
+                  <Button variant="secondary" className="sm:w-auto">
+                    Subscribe
+                  </Button>
                 </form>
               </div>
             </div>
