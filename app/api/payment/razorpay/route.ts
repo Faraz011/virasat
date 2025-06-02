@@ -2,12 +2,9 @@ import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { createOrder } from "@/lib/orders"
 
-// Import Razorpay but don't initialize it yet
-import Razorpay from "razorpay"
-
 export async function POST(request: Request) {
   try {
-    console.log("Razorpay payment API called")
+    console.log("=== Razorpay Payment API Called ===")
 
     const user = await getCurrentUser()
     console.log("Current user:", user ? `ID: ${user.id}` : "Not authenticated")
@@ -18,10 +15,13 @@ export async function POST(request: Request) {
 
     // Check if environment variables are available
     console.log("Checking Razorpay environment variables...")
-    console.log("RAZORPAY_KEY_ID exists:", !!process.env.RAZORPAY_KEY_ID)
-    console.log("RAZORPAY_KEY_SECRET exists:", !!process.env.RAZORPAY_KEY_SECRET)
+    const keyId = process.env.RAZORPAY_KEY_ID
+    const keySecret = process.env.RAZORPAY_KEY_SECRET
 
-    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+    console.log("RAZORPAY_KEY_ID:", keyId ? `${keyId.substring(0, 10)}...` : "MISSING")
+    console.log("RAZORPAY_KEY_SECRET:", keySecret ? "EXISTS" : "MISSING")
+
+    if (!keyId || !keySecret) {
       console.error("Missing Razorpay environment variables")
       return NextResponse.json(
         { message: "Razorpay configuration is missing. Please contact support." },
@@ -29,34 +29,76 @@ export async function POST(request: Request) {
       )
     }
 
-    // Initialize Razorpay only when the function is called
-    console.log("Initializing Razorpay...")
-    const razorpay = new Razorpay({
-      key_id: process.env.RAZORPAY_KEY_ID,
-      key_secret: process.env.RAZORPAY_KEY_SECRET,
-    })
-
-    const { amount, currency = "INR", receipt, notes, orderData } = await request.json()
+    const requestBody = await request.json()
+    const { amount, currency = "INR", receipt, notes, orderData } = requestBody
     console.log("Payment request data:", { amount, currency, receipt, orderData })
 
     if (!amount || amount < 1) {
+      console.error("Invalid amount:", amount)
       return NextResponse.json({ message: "Invalid amount" }, { status: 400 })
     }
 
+    // Import and initialize Razorpay dynamically
+    let razorpay
     try {
-      // Create a Razorpay order
-      console.log("Creating Razorpay order...")
-      const razorpayOrder = await razorpay.orders.create({
-        amount: amount * 100, // Razorpay expects amount in paise (1 INR = 100 paise)
+      const Razorpay = (await import("razorpay")).default
+      console.log("Razorpay module imported successfully")
+
+      razorpay = new Razorpay({
+        key_id: keyId,
+        key_secret: keySecret,
+      })
+      console.log("Razorpay instance created successfully")
+    } catch (importError: any) {
+      console.error("Failed to import or initialize Razorpay:", importError)
+      return NextResponse.json({ message: "Payment gateway initialization failed" }, { status: 500 })
+    }
+
+    // Create a Razorpay order
+    let razorpayOrder
+    try {
+      console.log("Creating Razorpay order with params:", {
+        amount: amount * 100,
+        currency,
+        receipt: receipt || `receipt_${Date.now()}`,
+      })
+
+      razorpayOrder = await razorpay.orders.create({
+        amount: amount * 100, // Razorpay expects amount in paise
         currency,
         receipt: receipt || `receipt_${Date.now()}`,
         notes: notes || {},
       })
-      console.log("Razorpay order created:", razorpayOrder)
 
-      // Create an order in our database
+      console.log("Razorpay order created successfully:", {
+        id: razorpayOrder.id,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        status: razorpayOrder.status,
+      })
+    } catch (razorpayError: any) {
+      console.error("Razorpay order creation failed:", {
+        error: razorpayError.message,
+        statusCode: razorpayError.statusCode,
+        description: razorpayError.description,
+        field: razorpayError.field,
+        source: razorpayError.source,
+      })
+
+      return NextResponse.json(
+        {
+          message: "Failed to create payment order with Razorpay",
+          error: razorpayError.description || razorpayError.message,
+        },
+        { status: 500 },
+      )
+    }
+
+    // Create an order in our database
+    let order
+    try {
       console.log("Creating order in database...")
-      const order = await createOrder({
+      order = await createOrder({
         userId: user.id,
         total: amount,
         items: orderData.items,
@@ -65,34 +107,29 @@ export async function POST(request: Request) {
         paymentStatus: "pending",
         razorpayOrderId: razorpayOrder.id,
       })
-      console.log("Database order created:", order.id)
-
-      const responseData = {
-        orderId: order.id,
-        razorpayOrderId: razorpayOrder.id, // Make sure this field is included
-        amount: razorpayOrder.amount,
-        currency: razorpayOrder.currency,
-        keyId: process.env.RAZORPAY_KEY_ID,
-      }
-
-      console.log("Sending response:", responseData)
-
-      return NextResponse.json(responseData)
-    } catch (razorpayError: any) {
-      console.error("Razorpay API error:", razorpayError)
-      return NextResponse.json(
-        {
-          message: "Failed to create Razorpay order. Please try again later.",
-          error: razorpayError.message,
-        },
-        { status: 500 },
-      )
+      console.log("Database order created successfully:", order.id)
+    } catch (dbError: any) {
+      console.error("Database order creation failed:", dbError)
+      return NextResponse.json({ message: "Failed to create order in database" }, { status: 500 })
     }
+
+    const responseData = {
+      orderId: order.id,
+      razorpayOrderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      keyId: keyId,
+    }
+
+    console.log("=== Sending successful response ===")
+    console.log("Response data:", responseData)
+
+    return NextResponse.json(responseData)
   } catch (error: any) {
-    console.error("Error creating Razorpay order:", error)
-    return NextResponse.json(
-      { message: error.message || "Failed to create payment order" },
-      { status: error.statusCode || 500 },
-    )
+    console.error("=== Unexpected error in Razorpay API ===")
+    console.error("Error:", error)
+    console.error("Stack:", error.stack)
+
+    return NextResponse.json({ message: error.message || "Failed to create payment order" }, { status: 500 })
   }
 }

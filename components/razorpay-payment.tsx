@@ -29,6 +29,43 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
     console.log("Razorpay script loaded successfully")
   }
 
+  const handleCashOnDelivery = async () => {
+    setIsLoading(true)
+    try {
+      // Create a cash on delivery order
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          items: orderData.items,
+          shippingAddress: orderData.shippingAddress,
+          paymentMethod: "cash_on_delivery",
+          total: amount,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to create cash on delivery order")
+      }
+
+      const data = await response.json()
+
+      toast({
+        title: "Order placed successfully",
+        description: "Your order has been placed. You can pay when the order is delivered.",
+      })
+
+      onSuccess(data.orderId)
+    } catch (error: any) {
+      console.error("Cash on delivery error:", error)
+      onError(error.message || "Failed to place order")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handlePayment = async () => {
     if (!isScriptLoaded) {
       toast({
@@ -41,7 +78,8 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
     setIsLoading(true)
 
     try {
-      console.log("Creating payment order with amount:", amount)
+      console.log("=== Starting payment process ===")
+      console.log("Amount:", amount)
       console.log("Order data:", orderData)
 
       // Create order on the server
@@ -70,25 +108,18 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
       }
 
       const data = await response.json()
-      console.log("Payment order created:", data)
+      console.log("Payment API response:", data)
 
-      // Check if we have the required data
+      // Validate response data
       if (!data.keyId) {
-        console.error("Missing keyId in response:", data)
-        throw new Error("Payment gateway key is missing. Please contact support.")
+        console.error("Missing keyId in response")
+        throw new Error("Payment gateway configuration error")
       }
 
-      // Check for razorpayOrderId - this is the field that was missing
       if (!data.razorpayOrderId) {
-        console.error("Missing razorpayOrderId in response:", data)
-
-        // Try to use id field if available (some Razorpay implementations use different field names)
-        if (data.id) {
-          console.log("Using data.id as razorpayOrderId:", data.id)
-          data.razorpayOrderId = data.id
-        } else {
-          throw new Error("Payment order ID is missing. Please contact support.")
-        }
+        console.error("Missing razorpayOrderId in response")
+        console.error("Full response:", data)
+        throw new Error("Payment order creation failed. Please try Cash on Delivery instead.")
       }
 
       // Check if Razorpay is available
@@ -97,7 +128,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         throw new Error("Payment gateway not loaded. Please refresh and try again.")
       }
 
-      console.log("Initializing Razorpay with options...")
+      console.log("Initializing Razorpay payment...")
 
       // Initialize Razorpay payment
       const options = {
@@ -150,7 +181,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
           address: orderData.shippingAddress.address,
         },
         theme: {
-          color: "#B45309", // Primary color (amber-700)
+          color: "#B45309",
         },
         modal: {
           ondismiss: () => {
@@ -160,11 +191,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         },
       }
 
-      console.log("Creating Razorpay instance with options:", {
-        ...options,
-        key: "HIDDEN_FOR_SECURITY",
-      })
-
+      console.log("Creating Razorpay instance...")
       const razorpay = new window.Razorpay(options)
 
       razorpay.on("payment.failed", (response: any) => {
@@ -188,7 +215,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
   }
 
   return (
-    <>
+    <div className="space-y-4">
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
         onLoad={handleScriptLoad}
@@ -196,14 +223,21 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
           console.error("Failed to load Razorpay script:", e)
           toast({
             title: "Payment gateway error",
-            description: "Failed to load payment gateway. Please refresh and try again.",
+            description: "Failed to load payment gateway. Please try Cash on Delivery.",
             variant: "destructive",
           })
         }}
       />
+
       <Button onClick={handlePayment} disabled={isLoading || !isScriptLoaded} className="w-full" size="lg">
         {isLoading ? "Processing..." : !isScriptLoaded ? "Loading Payment Gateway..." : "Pay with Razorpay"}
       </Button>
-    </>
+
+      <div className="text-center text-sm text-gray-500">or</div>
+
+      <Button onClick={handleCashOnDelivery} disabled={isLoading} variant="outline" className="w-full" size="lg">
+        {isLoading ? "Processing..." : "Cash on Delivery"}
+      </Button>
+    </div>
   )
 }
