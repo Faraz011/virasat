@@ -7,14 +7,22 @@ import Razorpay from "razorpay"
 
 export async function POST(request: Request) {
   try {
+    console.log("Razorpay payment API called")
+
     const user = await getCurrentUser()
+    console.log("Current user:", user ? `ID: ${user.id}` : "Not authenticated")
 
     if (!user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
     // Check if environment variables are available
+    console.log("Checking Razorpay environment variables...")
+    console.log("RAZORPAY_KEY_ID exists:", !!process.env.RAZORPAY_KEY_ID)
+    console.log("RAZORPAY_KEY_SECRET exists:", !!process.env.RAZORPAY_KEY_SECRET)
+
     if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error("Missing Razorpay environment variables")
       return NextResponse.json(
         { message: "Razorpay configuration is missing. Please contact support." },
         { status: 500 },
@@ -22,43 +30,53 @@ export async function POST(request: Request) {
     }
 
     // Initialize Razorpay only when the function is called
+    console.log("Initializing Razorpay...")
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     })
 
     const { amount, currency = "INR", receipt, notes, orderData } = await request.json()
+    console.log("Payment request data:", { amount, currency, receipt, orderData })
 
     if (!amount || amount < 1) {
       return NextResponse.json({ message: "Invalid amount" }, { status: 400 })
     }
 
     // Create a Razorpay order
+    console.log("Creating Razorpay order...")
     const razorpayOrder = await razorpay.orders.create({
       amount: amount * 100, // Razorpay expects amount in paise (1 INR = 100 paise)
       currency,
       receipt,
       notes,
     })
+    console.log("Razorpay order created:", razorpayOrder.id)
 
-    // Create an order in our database - using total instead of amount
+    // Create an order in our database
+    console.log("Creating order in database...")
     const order = await createOrder({
       userId: user.id,
-      total: amount, // Changed from amount to total
+      total: amount,
       items: orderData.items,
       shippingAddress: orderData.shippingAddress,
       paymentMethod: "razorpay",
       paymentStatus: "pending",
       razorpayOrderId: razorpayOrder.id,
     })
+    console.log("Database order created:", order.id)
 
-    return NextResponse.json({
+    const responseData = {
       orderId: order.id,
       razorpayOrderId: razorpayOrder.id,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
       keyId: process.env.RAZORPAY_KEY_ID,
-    })
+    }
+
+    console.log("Sending response:", responseData)
+
+    return NextResponse.json(responseData)
   } catch (error: any) {
     console.error("Error creating Razorpay order:", error)
     return NextResponse.json(
