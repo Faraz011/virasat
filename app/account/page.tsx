@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LogoutButton } from "@/components/logout-button"
+import { Shield } from "lucide-react"
 
 export const metadata = {
   title: "My Account - Virasat",
@@ -100,16 +101,19 @@ export default async function AccountPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle>Account Actions</CardTitle>
-              <CardDescription>Manage your account settings and security</CardDescription>
+              <CardTitle>Security</CardTitle>
+              <CardDescription>Manage your account security and sessions</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/account/settings">Account Settings</Link>
+                  <Link href="/account/password">Change Password</Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/account/password">Change Password</Link>
+                  <Link href="/account/sessions">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Manage Devices
+                  </Link>
                 </Button>
                 <LogoutButton />
               </div>
@@ -167,9 +171,17 @@ export default async function AccountPage() {
               <div className="space-y-2">
                 <h3 className="text-lg font-medium">Security</h3>
                 <p className="text-sm text-muted-foreground">Update your password and security preferences.</p>
-                <Button variant="outline" size="sm">
-                  Change Password
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm">
+                    Change Password
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/account/sessions">
+                      <Shield className="mr-2 h-4 w-4" />
+                      Manage Devices
+                    </Link>
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-2">

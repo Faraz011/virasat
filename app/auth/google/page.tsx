@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, CheckCircle } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,19 +20,24 @@ export default function GoogleAuthPage() {
     const error = searchParams.get("error")
     const state = searchParams.get("state")
 
+    console.log("Google OAuth callback received:", { code: !!code, error, state })
+
     if (error) {
+      console.error("Google OAuth error:", error)
       setStatus("error")
-      setMessage("Google authentication was cancelled or failed")
+      setMessage(`Google authentication failed: ${error}`)
       return
     }
 
     if (!code) {
-      // Redirect to Google OAuth
+      // No code means we need to initiate OAuth
+      console.log("No code found, initiating Google OAuth...")
       initiateGoogleAuth()
       return
     }
 
     // Handle the callback
+    console.log("Processing Google OAuth callback...")
     handleGoogleCallback(code, state)
   }, [searchParams])
 
@@ -40,8 +45,9 @@ export default function GoogleAuthPage() {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
     if (!clientId) {
+      console.error("NEXT_PUBLIC_GOOGLE_CLIENT_ID not found")
       setStatus("error")
-      setMessage("Google OAuth is not configured")
+      setMessage("Google OAuth is not configured. Please check environment variables.")
       return
     }
 
@@ -49,33 +55,41 @@ export default function GoogleAuthPage() {
     const scope = "openid email profile"
     const state = Math.random().toString(36).substring(2, 15)
 
+    console.log("Initiating Google OAuth with:", { clientId, redirectUri, scope, state })
+
     // Store state in sessionStorage for verification
     sessionStorage.setItem("google_oauth_state", state)
 
     const authUrl =
       `https://accounts.google.com/o/oauth2/v2/auth?` +
-      `client_id=${clientId}&` +
+      `client_id=${encodeURIComponent(clientId)}&` +
       `redirect_uri=${encodeURIComponent(redirectUri)}&` +
       `response_type=code&` +
       `scope=${encodeURIComponent(scope)}&` +
-      `state=${state}&` +
+      `state=${encodeURIComponent(state)}&` +
       `access_type=offline&` +
       `prompt=consent`
 
+    console.log("Redirecting to Google OAuth URL:", authUrl)
     window.location.href = authUrl
   }
 
   const handleGoogleCallback = async (code: string, state: string | null) => {
     try {
+      console.log("Handling Google OAuth callback...")
+
       // Verify state parameter
       const storedState = sessionStorage.getItem("google_oauth_state")
+      console.log("State verification:", { received: state, stored: storedState })
+
       if (!state || state !== storedState) {
-        throw new Error("Invalid state parameter")
+        throw new Error("Invalid state parameter - possible CSRF attack")
       }
 
       // Clear stored state
       sessionStorage.removeItem("google_oauth_state")
 
+      console.log("Sending code to backend...")
       const response = await fetch("/api/auth/google/callback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -83,11 +97,13 @@ export default function GoogleAuthPage() {
       })
 
       const data = await response.json()
+      console.log("Backend response:", { ok: response.ok, status: response.status, data })
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         setStatus("success")
         setMessage("Successfully authenticated with Google!")
 
+        console.log("Authentication successful, redirecting to home...")
         // Redirect to home page after 2 seconds
         setTimeout(() => {
           router.push("/")
@@ -97,6 +113,7 @@ export default function GoogleAuthPage() {
         throw new Error(data.message || "Authentication failed")
       }
     } catch (error: any) {
+      console.error("Google OAuth callback error:", error)
       setStatus("error")
       setMessage(error.message || "An error occurred during authentication")
     }
@@ -108,6 +125,8 @@ export default function GoogleAuthPage() {
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center gap-2">
             {status === "loading" && <Loader2 className="h-6 w-6 animate-spin" />}
+            {status === "success" && <CheckCircle className="h-6 w-6 text-green-600" />}
+            {status === "error" && <AlertCircle className="h-6 w-6 text-red-600" />}
             Google Authentication
           </CardTitle>
           <CardDescription>
@@ -119,7 +138,7 @@ export default function GoogleAuthPage() {
         <CardContent className="space-y-4">
           {status === "loading" && (
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Please wait while we redirect you to Google...</p>
+              <p className="text-sm text-muted-foreground">Please wait while we process your authentication...</p>
             </div>
           )}
 

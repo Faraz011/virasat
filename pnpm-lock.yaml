@@ -19,7 +19,7 @@ importers:
         version: 0.3.2
       '@hookform/resolvers':
         specifier: latest
-        version: 5.0.1(react-hook-form@7.56.4(react@19.0.0))
+        version: 5.0.1(react-hook-form@7.57.0(react@19.0.0))
       '@libsql/client':
         specifier: latest
         version: 0.15.8(bufferutil@4.0.9)
@@ -130,7 +130,7 @@ importers:
         version: 7.6.13
       '@types/pg':
         specifier: latest
-        version: 8.15.2
+        version: 8.15.4
       '@types/sql.js':
         specifier: latest
         version: 1.4.9
@@ -171,11 +171,11 @@ importers:
         specifier: latest
         version: 1.0.1
       date-fns:
-        specifier: 4.1.0
+        specifier: latest
         version: 4.1.0
       drizzle-orm:
         specifier: latest
-        version: 0.44.1(7c925c26bb3b37d7ed699a8c816d72f2)
+        version: 0.44.1(8bf68fa145003d4059089265cb8e9d4e)
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@19.0.0)
@@ -229,7 +229,7 @@ importers:
         version: 19.0.0(react@19.0.0)
       react-hook-form:
         specifier: latest
-        version: 7.56.4(react@19.0.0)
+        version: 7.57.0(react@19.0.0)
       react-resizable-panels:
         specifier: ^2.1.7
         version: 2.1.7(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -256,7 +256,7 @@ importers:
         version: 0.9.6(@types/react-dom@19.0.0)(@types/react@19.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       zod:
         specifier: latest
-        version: 3.25.46
+        version: 3.25.48
     devDependencies:
       '@types/node':
         specifier: ^22
@@ -972,14 +972,14 @@ packages:
     resolution: {integrity: sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==}
     engines: {node: '>=14'}
 
-  '@floating-ui/core@1.7.0':
-    resolution: {integrity: sha512-FRdBLykrPPA6P76GGGqlex/e7fbe0F1ykgxHYNXQsH/iTEtjMj/f9bpY5oQqbjt5VgZvgz/uKXbGuROijh3VLA==}
+  '@floating-ui/core@1.7.1':
+    resolution: {integrity: sha512-azI0DrjMMfIug/ExbBaeDVJXcY0a7EPvPjb2xAJPa4HeimBX+Z18HK8QQR3jb6356SnDDdxx+hinMLcJEDdOjw==}
 
-  '@floating-ui/dom@1.7.0':
-    resolution: {integrity: sha512-lGTor4VlXcesUMh1cupTUTDoCxMb0V6bm3CnxHzQcw8Eaf1jQbgQX4i02fYgT0vJ82tb5MZ4CZk1LRGkktJCzg==}
+  '@floating-ui/dom@1.7.1':
+    resolution: {integrity: sha512-cwsmW/zyw5ltYTUeeYJ60CnQuPqmGwuGVhG9w0PRaRKkAyi38BT5CKrpIbb+jtahSwUl04cWzSx9ZOIxeS6RsQ==}
 
-  '@floating-ui/react-dom@2.1.2':
-    resolution: {integrity: sha512-06okr5cgPzMNBy+Ycse2A6udMi4bqwW/zgBF/rwjcNqWkyr82Mcg8b0vjX8OJpZFy/FKjJmw6wV7t44kK6kW7A==}
+  '@floating-ui/react-dom@2.1.3':
+    resolution: {integrity: sha512-huMBfiU9UnQ2oBwIhgzyIiSpVgvlDstU8CX0AF+wS+KzmYMs0J2a3GwuFHV1Lz+jlrQGeC1fF+Nv0QoumyV0bA==}
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
@@ -2320,8 +2320,8 @@ packages:
   '@types/pg@8.11.6':
     resolution: {integrity: sha512-/2WmmBXHLsfRqzfHW7BNZ8SbYzE8OSk7i3WjFYvfgRHj7S1xj+16Je5fUKv3lVdVzk/zn9TXOqf+avFCFIE0yQ==}
 
-  '@types/pg@8.15.2':
-    resolution: {integrity: sha512-+BKxo5mM6+/A1soSHBI7ufUglqYXntChLDyTbvcAn1Lawi9J7J9Ok3jt6w7I0+T/UDJ4CyhHk66+GZbwmkYxSg==}
+  '@types/pg@8.15.4':
+    resolution: {integrity: sha512-I6UNVBAoYbvuWkkU3oosC8yxqH21f4/Jc4DK71JLG3dT2mdlGe1z+ep/LQGXaKaOgcvUrsQoPRqfgtMcvZiJhg==}
 
   '@types/react-dom@19.0.0':
     resolution: {integrity: sha512-1KfiQKsH1o00p9m5ag12axHQSb3FOU9H20UTrujVSkNhuCrRHiQWFqgEnTNK5ZNfnzZv8UWrnXVqCmCF9fgY3w==}
@@ -4589,8 +4589,8 @@ packages:
     peerDependencies:
       react: ^19.0.0
 
-  react-hook-form@7.56.4:
-    resolution: {integrity: sha512-Rob7Ftz2vyZ/ZGsQZPaRdIefkgOSrQSPXfqBdvOPwJfoGnjwRJUs7EM7Kc1mcoDv3NOtqBzPGbcMB8CGn9CKgw==}
+  react-hook-form@7.57.0:
+    resolution: {integrity: sha512-RbEks3+cbvTP84l/VXGUZ+JMrKOS8ykQCRYdm5aYsxnDquL0vspsyNhGRO7pcH6hsZqWlPOjLye7rJqdtdAmlg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
@@ -4837,8 +4837,8 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
-  shell-quote@1.8.2:
-    resolution: {integrity: sha512-AzqKpGKjrj7EM6rKVQEPpB288oCfnrEIuyoT9cyF4nmGa7V8Zk6f7RRqYisX8X9m+Q7bd632aZW4ky7EhbQztA==}
+  shell-quote@1.8.3:
+    resolution: {integrity: sha512-ObmnIF4hXNg1BqhnHmgbDETF8dLPCggZWBjkQfhZpbszZnYur5DUljTcCHii5LC3J5E0yeO/1LIMyH+UvHQgyw==}
     engines: {node: '>= 0.4'}
 
   signal-exit@3.0.7:
@@ -5381,8 +5381,8 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
-  zod@3.25.46:
-    resolution: {integrity: sha512-IqRxcHEIjqLd4LNS/zKffB3Jzg3NwqJxQQ0Ns7pdrvgGkwQsEBdEQcOHaBVqvvZArShRzI39+aMST3FBGmTrLQ==}
+  zod@3.25.48:
+    resolution: {integrity: sha512-0X1mz8FtgEIvaxGjdIImYpZEaZMrund9pGXm3M6vM7Reba0e2eI71KPjSCGXBfwKDPwPoywf6waUKc3/tFvX2Q==}
 
 snapshots:
 
@@ -6581,18 +6581,18 @@ snapshots:
 
   '@fastify/busboy@2.1.1': {}
 
-  '@floating-ui/core@1.7.0':
+  '@floating-ui/core@1.7.1':
     dependencies:
       '@floating-ui/utils': 0.2.9
 
-  '@floating-ui/dom@1.7.0':
+  '@floating-ui/dom@1.7.1':
     dependencies:
-      '@floating-ui/core': 1.7.0
+      '@floating-ui/core': 1.7.1
       '@floating-ui/utils': 0.2.9
 
-  '@floating-ui/react-dom@2.1.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+  '@floating-ui/react-dom@2.1.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
-      '@floating-ui/dom': 1.7.0
+      '@floating-ui/dom': 1.7.1
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
 
@@ -6601,10 +6601,10 @@ snapshots:
   '@gar/promisify@1.1.3':
     optional: true
 
-  '@hookform/resolvers@5.0.1(react-hook-form@7.56.4(react@19.0.0))':
+  '@hookform/resolvers@5.0.1(react-hook-form@7.57.0(react@19.0.0))':
     dependencies:
       '@standard-schema/utils': 0.3.0
-      react-hook-form: 7.56.4(react@19.0.0)
+      react-hook-form: 7.57.0(react@19.0.0)
 
   '@img/sharp-darwin-arm64@0.33.5':
     optionalDependencies:
@@ -6857,7 +6857,7 @@ snapshots:
   '@neondatabase/serverless@1.0.0':
     dependencies:
       '@types/node': 22.15.29
-      '@types/pg': 8.15.2
+      '@types/pg': 8.15.4
 
   '@next/env@15.2.4': {}
 
@@ -7272,7 +7272,7 @@ snapshots:
 
   '@radix-ui/react-popper@1.2.1(@types/react-dom@19.0.0)(@types/react@19.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
     dependencies:
-      '@floating-ui/react-dom': 2.1.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
+      '@floating-ui/react-dom': 2.1.3(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@radix-ui/react-arrow': 1.1.1(@types/react-dom@19.0.0)(@types/react@19.0.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@radix-ui/react-compose-refs': 1.1.1(@types/react@19.0.0)(react@19.0.0)
       '@radix-ui/react-context': 1.1.1(@types/react@19.0.0)(react@19.0.0)
@@ -8109,11 +8109,11 @@ snapshots:
       pg-protocol: 1.10.0
       pg-types: 4.0.2
 
-  '@types/pg@8.15.2':
+  '@types/pg@8.15.4':
     dependencies:
       '@types/node': 22.0.0
       pg-protocol: 1.10.0
-      pg-types: 4.0.2
+      pg-types: 2.2.0
 
   '@types/react-dom@19.0.0':
     dependencies:
@@ -8851,7 +8851,7 @@ snapshots:
 
   dotenv@16.4.7: {}
 
-  drizzle-orm@0.44.1(7c925c26bb3b37d7ed699a8c816d72f2):
+  drizzle-orm@0.44.1(8bf68fa145003d4059089265cb8e9d4e):
     optionalDependencies:
       '@aws-sdk/client-rds-data': 3.821.0
       '@cloudflare/workers-types': 4.20250601.0
@@ -8865,7 +8865,7 @@ snapshots:
       '@prisma/client': 6.8.2(typescript@5.0.2)
       '@tidbcloud/serverless': 0.2.0
       '@types/better-sqlite3': 7.6.13
-      '@types/pg': 8.15.2
+      '@types/pg': 8.15.4
       '@types/sql.js': 1.4.9
       '@upstash/redis': 1.34.9
       '@vercel/postgres': 0.10.0
@@ -9183,7 +9183,7 @@ snapshots:
       debug: 4.4.1
       env-paths: 3.0.0
       semver: 7.7.2
-      shell-quote: 1.8.2
+      shell-quote: 1.8.3
       which: 4.0.0
     transitivePeerDependencies:
       - supports-color
@@ -10466,7 +10466,7 @@ snapshots:
 
   react-devtools-core@6.1.2(bufferutil@4.0.9):
     dependencies:
-      shell-quote: 1.8.2
+      shell-quote: 1.8.3
       ws: 7.5.10(bufferutil@4.0.9)
     transitivePeerDependencies:
       - bufferutil
@@ -10477,7 +10477,7 @@ snapshots:
       react: 19.0.0
       scheduler: 0.25.0
 
-  react-hook-form@7.56.4(react@19.0.0):
+  react-hook-form@7.57.0(react@19.0.0):
     dependencies:
       react: 19.0.0
 
@@ -10796,7 +10796,7 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  shell-quote@1.8.2: {}
+  shell-quote@1.8.3: {}
 
   signal-exit@3.0.7: {}
 
@@ -11315,4 +11315,4 @@ snapshots:
 
   yocto-queue@0.1.0: {}
 
-  zod@3.25.46: {}
+  zod@3.25.48: {}
