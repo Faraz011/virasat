@@ -3,19 +3,18 @@ import { SignJWT, jwtVerify } from "jose"
 
 const secretKey = new TextEncoder().encode(process.env.JWT_SECRET || "fallback_secret_key_for_development_only")
 
-export async function createEmailVerificationToken(userId: number, email: string) {
+export async function createEmailVerificationToken(userId: number, email: string): Promise<string> {
   const token = await new SignJWT({ userId, email, type: "email_verification" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("24h")
     .sign(secretKey)
 
-  // Store the token in database
   await sql`
     INSERT INTO email_verification_tokens (user_id, token, expires_at)
-    VALUES (${userId}, ${token}, ${new Date(Date.now() + 24 * 60 * 60 * 1000)})
+    VALUES (${userId}, ${token}, NOW() + INTERVAL '24 hours')
     ON CONFLICT (user_id) 
-    DO UPDATE SET token = ${token}, expires_at = ${new Date(Date.now() + 24 * 60 * 60 * 1000)}, created_at = NOW()
+    DO UPDATE SET token = ${token}, expires_at = NOW() + INTERVAL '24 hours', created_at = NOW()
   `
 
   return token
@@ -29,7 +28,6 @@ export async function verifyEmailToken(token: string) {
       throw new Error("Invalid token type")
     }
 
-    // Check if token exists in database and is not expired
     const result = await sql`
       SELECT user_id, token FROM email_verification_tokens 
       WHERE token = ${token} AND expires_at > NOW()
@@ -51,45 +49,37 @@ export async function markEmailAsVerified(userId: number) {
     WHERE id = ${userId}
   `
 
-  // Delete the verification token
   await sql`
     DELETE FROM email_verification_tokens WHERE user_id = ${userId}
   `
 }
 
-export async function sendVerificationEmail(email: string, token: string) {
-  // In a real application, you would use a service like SendGrid, Resend, or Nodemailer
-  // For now, we'll just log the verification link
+export async function sendVerificationEmail(email: string, token: string): Promise<void> {
   const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/verify-email?token=${token}`
 
-  console.log(`
-    📧 Email Verification Required
-    To: ${email}
-    Subject: Verify your email address for Virasat
-    
-    Please click the following link to verify your email address:
-    ${verificationUrl}
-    
-    This link will expire in 24 hours.
-  `)
-
-  // Return the URL for development purposes
-  return verificationUrl
+  if (process.env.NODE_ENV === "development") {
+    console.log(`
+=== EMAIL VERIFICATION ===
+To: ${email}
+Subject: Verify your email address
+Verification URL: ${verificationUrl}
+========================
+    `)
+  }
 }
 
-export async function createPasswordResetToken(userId: number, email: string) {
+export async function createPasswordResetToken(userId: number, email: string): Promise<string> {
   const token = await new SignJWT({ userId, email, type: "password_reset" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("1h")
     .sign(secretKey)
 
-  // Store the token in database
   await sql`
     INSERT INTO password_reset_tokens (user_id, token, expires_at)
-    VALUES (${userId}, ${token}, ${new Date(Date.now() + 60 * 60 * 1000)})
+    VALUES (${userId}, ${token}, NOW() + INTERVAL '1 hour')
     ON CONFLICT (user_id) 
-    DO UPDATE SET token = ${token}, expires_at = ${new Date(Date.now() + 60 * 60 * 1000)}, created_at = NOW()
+    DO UPDATE SET token = ${token}, expires_at = NOW() + INTERVAL '1 hour', created_at = NOW()
   `
 
   return token
@@ -103,7 +93,6 @@ export async function verifyPasswordResetToken(token: string) {
       throw new Error("Invalid token type")
     }
 
-    // Check if token exists in database and is not expired
     const result = await sql`
       SELECT user_id, token FROM password_reset_tokens 
       WHERE token = ${token} AND expires_at > NOW()
@@ -123,4 +112,18 @@ export async function deletePasswordResetToken(userId: number) {
   await sql`
     DELETE FROM password_reset_tokens WHERE user_id = ${userId}
   `
+}
+
+export async function sendPasswordResetEmail(email: string, token: string): Promise<void> {
+  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${token}`
+
+  if (process.env.NODE_ENV === "development") {
+    console.log(`
+=== PASSWORD RESET ===
+To: ${email}
+Subject: Reset your password
+Reset URL: ${resetUrl}
+===================
+    `)
+  }
 }

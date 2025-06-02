@@ -1,24 +1,52 @@
 import { NextResponse } from "next/server"
-import { verifyEmailToken, markEmailAsVerified } from "@/lib/email"
+import { jwtVerify } from "jose"
+import { sql } from "@/lib/db"
 
-export async function GET(request: Request) {
+const secretKey = new TextEncoder().encode(process.env.JWT_SECRET || "fallback_secret_key_for_development_only")
+
+export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const token = searchParams.get("token")
+    const { token } = await request.json()
 
     if (!token) {
       return NextResponse.json({ message: "Verification token is required" }, { status: 400 })
     }
 
-    // Verify the token
-    const { userId } = await verifyEmailToken(token)
+    // Verify JWT token
+    const { payload } = await jwtVerify(token, secretKey)
 
-    // Mark email as verified
-    await markEmailAsVerified(userId)
+    if (payload.type !== "email_verification") {
+      return NextResponse.json({ message: "Invalid token type" }, { status: 400 })
+    }
+
+    const userId = Number(payload.userId)
+
+    // Check if token exists in database and is not expired
+    const tokenRecord = await sql`
+      SELECT * FROM email_verification_tokens 
+      WHERE user_id = ${userId} AND token = ${token} AND expires_at > NOW()
+    `
+
+    if (tokenRecord.length === 0) {
+      return NextResponse.json({ message: "Invalid or expired verification token" }, { status: 400 })
+    }
+
+    // Update user email verification status
+    await sql`
+      UPDATE users 
+      SET email_verified = true, email_verified_at = NOW() 
+      WHERE id = ${userId}
+    `
+
+    // Delete the used token
+    await sql`
+      DELETE FROM email_verification_tokens 
+      WHERE user_id = ${userId}
+    `
 
     return NextResponse.json({ message: "Email verified successfully" }, { status: 200 })
   } catch (error: any) {
     console.error("Email verification error:", error)
-    return NextResponse.json({ message: error.message || "Invalid or expired verification token" }, { status: 400 })
+    return NextResponse.json({ message: "Invalid or expired token" }, { status: 400 })
   }
 }
