@@ -23,6 +23,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isScriptLoaded, setIsScriptLoaded] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
 
   const handleScriptLoad = () => {
     setIsScriptLoaded(true)
@@ -76,12 +77,14 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
     }
 
     setIsLoading(true)
+    setDebugInfo(null)
 
     try {
       console.log("=== Starting payment process ===")
       console.log("Amount:", amount)
 
       // Step 1: Create Razorpay order
+      console.log("Calling payment API...")
       const response = await fetch("/api/payment/razorpay", {
         method: "POST",
         headers: {
@@ -96,19 +99,31 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
 
       console.log("Payment API response status:", response.status)
 
-      if (!response.ok) {
-        const error = await response.json()
-        console.error("Payment API error:", error)
-        throw new Error(error.message || "Failed to create payment order")
+      // Get the raw text response for debugging
+      const responseText = await response.text()
+      console.log("Raw API response:", responseText)
+
+      // Parse the response as JSON
+      let data
+      try {
+        data = JSON.parse(responseText)
+        console.log("Parsed API response:", data)
+      } catch (parseError) {
+        console.error("Failed to parse API response:", parseError)
+        setDebugInfo(`API Response (Status ${response.status}): ${responseText}`)
+        throw new Error("Invalid response from payment API")
       }
 
-      const data = await response.json()
-      console.log("Razorpay API response:", data)
+      if (!response.ok) {
+        console.error("Payment API error:", data)
+        throw new Error(data.message || "Failed to create payment order")
+      }
 
       // Check for the exact field name razorpayOrderId
       if (!data.razorpayOrderId) {
         console.error("Missing razorpayOrderId in response:", data)
-        throw new Error("Payment order creation failed. Please try again.")
+        setDebugInfo(`API Response: ${JSON.stringify(data)}`)
+        throw new Error("Payment order creation failed. Missing order ID in response.")
       }
 
       if (!data.keyId) {
@@ -240,6 +255,13 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
       <Button onClick={handleCashOnDelivery} disabled={isLoading} variant="outline" className="w-full" size="lg">
         {isLoading ? "Processing..." : "Cash on Delivery"}
       </Button>
+
+      {debugInfo && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm font-medium text-red-800">Debug Information:</p>
+          <pre className="mt-1 text-xs overflow-auto max-h-32 text-red-700">{debugInfo}</pre>
+        </div>
+      )}
     </div>
   )
 }
