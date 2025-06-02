@@ -81,7 +81,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
       console.log("=== Starting payment process ===")
       console.log("Amount:", amount)
 
-      // Step 1: Create Razorpay order (not database order)
+      // Step 1: Create Razorpay order
       const response = await fetch("/api/payment/razorpay", {
         method: "POST",
         headers: {
@@ -103,11 +103,16 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
       }
 
       const data = await response.json()
-      console.log("Razorpay order created:", data)
+      console.log("Razorpay API response:", data)
 
-      // Validate response data
-      if (!data.keyId || !data.razorpayOrderId) {
-        console.error("Invalid response from payment API:", data)
+      // Check for the exact field name razorpayOrderId
+      if (!data.razorpayOrderId) {
+        console.error("Missing razorpayOrderId in response:", data)
+        throw new Error("Payment order creation failed. Please try again.")
+      }
+
+      if (!data.keyId) {
+        console.error("Missing keyId in response:", data)
         throw new Error("Payment gateway configuration error")
       }
 
@@ -117,7 +122,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         throw new Error("Payment gateway not loaded. Please refresh and try again.")
       }
 
-      console.log("Initializing Razorpay payment...")
+      console.log("Initializing Razorpay payment with order ID:", data.razorpayOrderId)
 
       // Step 2: Initialize Razorpay payment
       const options = {
@@ -126,7 +131,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         currency: data.currency || "INR",
         name: "Virasat",
         description: "Purchase of handwoven sarees",
-        order_id: data.razorpayOrderId, // This is now the correct Razorpay order ID
+        order_id: data.razorpayOrderId, // Using the exact field name
         handler: async (response: any) => {
           console.log("Payment successful:", response)
           try {
@@ -184,7 +189,11 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         },
       }
 
-      console.log("Creating Razorpay instance...")
+      console.log("Creating Razorpay instance with options:", {
+        ...options,
+        key: "HIDDEN_FOR_SECURITY",
+      })
+
       const razorpay = new window.Razorpay(options)
 
       razorpay.on("payment.failed", (response: any) => {
