@@ -41,10 +41,10 @@ export async function POST(request: Request) {
       notes,
     })
 
-    // Create an order in our database
+    // Create an order in our database - using total instead of amount
     const order = await createOrder({
       userId: user.id,
-      amount,
+      total: amount, // Changed from amount to total
       items: orderData.items,
       shippingAddress: orderData.shippingAddress,
       paymentMethod: "razorpay",
