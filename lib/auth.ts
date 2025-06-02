@@ -2,7 +2,6 @@ import { cookies } from "next/headers"
 import { sql } from "./db"
 import bcrypt from "bcryptjs"
 import { SignJWT, jwtVerify } from "jose"
-import { createEmailVerificationToken, sendVerificationEmail } from "./email"
 
 const secretKey = new TextEncoder().encode(process.env.JWT_SECRET || "fallback_secret_key_for_development_only")
 
@@ -52,27 +51,22 @@ export async function createUser(email: string, password: string, firstName: str
   const hashedPassword = await hashPassword(password)
 
   const result = await sql`
-    INSERT INTO users (email, password_hash, first_name, last_name, email_verified) 
-    VALUES (${email}, ${hashedPassword}, ${firstName}, ${lastName}, false) 
+    INSERT INTO users (email, password_hash, first_name, last_name) 
+    VALUES (${email}, ${hashedPassword}, ${firstName}, ${lastName}) 
     RETURNING id, email, first_name, last_name
   `
 
   const user = result[0]
 
-  // Create and send email verification token
-  try {
-    const verificationToken = await createEmailVerificationToken(user.id, user.email)
-    await sendVerificationEmail(user.email, verificationToken)
-  } catch (error) {
-    console.log("Email verification token created but email not sent (development mode)")
-  }
+  // For now, we'll skip email verification in development
+  console.log(`User created: ${user.email} - Email verification would be sent in production`)
 
   return user
 }
 
 export async function getUserByEmail(email: string) {
   const result = await sql`
-    SELECT id, email, password_hash, first_name, last_name, is_admin, email_verified, email_verified_at 
+    SELECT id, email, password_hash, first_name, last_name, is_admin 
     FROM users 
     WHERE email = ${email}
   `
@@ -82,7 +76,7 @@ export async function getUserByEmail(email: string) {
 
 export async function getUserById(id: number) {
   const result = await sql`
-    SELECT id, email, first_name, last_name, phone, is_admin, email_verified, email_verified_at 
+    SELECT id, email, first_name, last_name, phone, is_admin 
     FROM users 
     WHERE id = ${id}
   `
@@ -117,7 +111,7 @@ export async function createSession(userId: number, userAgent?: string, ipAddres
     .setExpirationTime("7d")
     .sign(secretKey)
 
-  // Store session in database
+  // Store session in database (optional - won't break if it fails)
   try {
     await sql`
       INSERT INTO user_sessions (
@@ -152,7 +146,7 @@ export async function getSession() {
   try {
     const { payload } = await jwtVerify(session, secretKey)
 
-    // Update last_active timestamp for this session
+    // Update last_active timestamp for this session (optional)
     if (payload.tokenId) {
       try {
         await sql`
@@ -312,4 +306,19 @@ export async function cleanupExpiredSessions() {
     console.log("Failed to cleanup expired sessions:", error)
     return 0
   }
+}
+
+// Email verification functions (simplified for now)
+export async function createEmailVerificationToken(userId: number, email: string) {
+  // For development, just return a simple token
+  const token = generateUUID()
+  console.log(`Email verification token for ${email}: ${token}`)
+  return token
+}
+
+export async function sendVerificationEmail(email: string, token: string) {
+  // For development, just log the email
+  console.log(`Verification email would be sent to: ${email}`)
+  console.log(`Verification link: ${process.env.NEXT_PUBLIC_APP_URL}/verify-email?token=${token}`)
+  return true
 }

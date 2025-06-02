@@ -10,6 +10,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ message: "Invalid email format" }, { status: 400 })
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      return NextResponse.json({ message: "Password must be at least 6 characters long" }, { status: 400 })
+    }
+
     // Check if user already exists
     const existingUser = await getUserByEmail(email)
     if (existingUser) {
@@ -32,6 +43,7 @@ export async function POST(request: Request) {
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
+        message: "Registration successful! You are now logged in.",
       },
       { status: 201 },
     )
