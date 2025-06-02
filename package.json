@@ -63,7 +63,7 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "crypto": "latest",
-    "date-fns": "4.1.0",
+    "date-fns": "latest",
     "drizzle-orm": "latest",
     "embla-carousel-react": "8.5.1",
     "expo-sqlite": "latest",
@@ -90,6 +90,8 @@
     "sqlite3": "latest",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "ua-parser-js": "latest",
+    "uuid": "latest",
     "vaul": "^0.9.6",
     "zod": "latest"
   },
