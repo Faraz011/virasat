@@ -78,9 +78,17 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         throw new Error("Payment gateway key is missing. Please contact support.")
       }
 
+      // Check for razorpayOrderId - this is the field that was missing
       if (!data.razorpayOrderId) {
         console.error("Missing razorpayOrderId in response:", data)
-        throw new Error("Payment order ID is missing. Please contact support.")
+
+        // Try to use id field if available (some Razorpay implementations use different field names)
+        if (data.id) {
+          console.log("Using data.id as razorpayOrderId:", data.id)
+          data.razorpayOrderId = data.id
+        } else {
+          throw new Error("Payment order ID is missing. Please contact support.")
+        }
       }
 
       // Check if Razorpay is available
@@ -95,7 +103,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
       const options = {
         key: data.keyId,
         amount: data.amount,
-        currency: data.currency,
+        currency: data.currency || "INR",
         name: "Virasat",
         description: "Purchase of handwoven sarees",
         order_id: data.razorpayOrderId,
@@ -127,7 +135,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
               description: "Your order has been placed successfully.",
             })
 
-            onSuccess(verifyData.orderId)
+            onSuccess(verifyData.orderId || data.orderId)
           } catch (error: any) {
             console.error("Payment verification error:", error)
             onError(error.message || "Payment verification failed")
@@ -152,7 +160,10 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         },
       }
 
-      console.log("Creating Razorpay instance with options:", options)
+      console.log("Creating Razorpay instance with options:", {
+        ...options,
+        key: "HIDDEN_FOR_SECURITY",
+      })
 
       const razorpay = new window.Razorpay(options)
 
@@ -172,7 +183,6 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         variant: "destructive",
       })
       onError(error.message || "Failed to initialize payment")
-    } finally {
       setIsLoading(false)
     }
   }
