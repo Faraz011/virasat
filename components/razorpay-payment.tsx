@@ -80,9 +80,8 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
     try {
       console.log("=== Starting payment process ===")
       console.log("Amount:", amount)
-      console.log("Order data:", orderData)
 
-      // Create order on the server
+      // Step 1: Create Razorpay order (not database order)
       const response = await fetch("/api/payment/razorpay", {
         method: "POST",
         headers: {
@@ -92,10 +91,6 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
           amount,
           currency: "INR",
           receipt: `receipt_${Date.now()}`,
-          notes: {
-            shipping_address: JSON.stringify(orderData.shippingAddress),
-          },
-          orderData,
         }),
       })
 
@@ -108,18 +103,12 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
       }
 
       const data = await response.json()
-      console.log("Payment API response:", data)
+      console.log("Razorpay order created:", data)
 
       // Validate response data
-      if (!data.keyId) {
-        console.error("Missing keyId in response")
+      if (!data.keyId || !data.razorpayOrderId) {
+        console.error("Invalid response from payment API:", data)
         throw new Error("Payment gateway configuration error")
-      }
-
-      if (!data.razorpayOrderId) {
-        console.error("Missing razorpayOrderId in response")
-        console.error("Full response:", data)
-        throw new Error("Payment order creation failed. Please try Cash on Delivery instead.")
       }
 
       // Check if Razorpay is available
@@ -130,18 +119,18 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
 
       console.log("Initializing Razorpay payment...")
 
-      // Initialize Razorpay payment
+      // Step 2: Initialize Razorpay payment
       const options = {
         key: data.keyId,
         amount: data.amount,
         currency: data.currency || "INR",
         name: "Virasat",
         description: "Purchase of handwoven sarees",
-        order_id: data.razorpayOrderId,
+        order_id: data.razorpayOrderId, // This is now the correct Razorpay order ID
         handler: async (response: any) => {
           console.log("Payment successful:", response)
           try {
-            // Verify payment signature
+            // Step 3: Verify payment and create database order
             const verifyResponse = await fetch("/api/payment/razorpay/verify", {
               method: "POST",
               headers: {
@@ -151,6 +140,10 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
+                orderData: {
+                  ...orderData,
+                  amount: amount,
+                },
               }),
             })
 
@@ -166,7 +159,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
               description: "Your order has been placed successfully.",
             })
 
-            onSuccess(verifyData.orderId || data.orderId)
+            onSuccess(verifyData.orderId)
           } catch (error: any) {
             console.error("Payment verification error:", error)
             onError(error.message || "Payment verification failed")
