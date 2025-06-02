@@ -19,8 +19,12 @@ export async function POST(request: Request) {
     // Create new user
     const user = await createUser(email, password, firstName, lastName)
 
+    // Get user agent and IP address for session tracking
+    const userAgent = request.headers.get("user-agent") || undefined
+    const ipAddress = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined
+
     // Automatically log in the user after registration
-    await createSession(user.id)
+    await createSession(user.id, userAgent, ipAddress)
 
     return NextResponse.json(
       {

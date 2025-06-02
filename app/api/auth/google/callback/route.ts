@@ -92,9 +92,13 @@ export async function POST(request: Request) {
       }
     }
 
+    // Get user agent and IP address for session tracking
+    const userAgent = request.headers.get("user-agent") || undefined
+    const ipAddress = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || undefined
+
     // Create session
     console.log("Creating session for user:", user.id)
-    await createSession(user.id)
+    await createSession(user.id, userAgent, ipAddress)
 
     return NextResponse.json(
       {

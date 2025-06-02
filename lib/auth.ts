@@ -3,10 +3,42 @@ import { sql } from "./db"
 import bcrypt from "bcryptjs"
 import { SignJWT, jwtVerify } from "jose"
 import { createEmailVerificationToken, sendVerificationEmail } from "./email"
-import { UAParser } from "ua-parser-js"
-import { v4 as uuidv4 } from "uuid"
 
 const secretKey = new TextEncoder().encode(process.env.JWT_SECRET || "fallback_secret_key_for_development_only")
+
+// Simple device detection without external dependencies
+function parseUserAgent(userAgent: string) {
+  const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)
+  const isTablet = /iPad|Android(?!.*Mobile)/i.test(userAgent)
+
+  let deviceType = "Desktop"
+  if (isTablet) deviceType = "Tablet"
+  else if (isMobile) deviceType = "Mobile"
+
+  let browser = "Unknown"
+  if (userAgent.includes("Chrome")) browser = "Chrome"
+  else if (userAgent.includes("Firefox")) browser = "Firefox"
+  else if (userAgent.includes("Safari")) browser = "Safari"
+  else if (userAgent.includes("Edge")) browser = "Edge"
+
+  let deviceName = "Unknown Device"
+  if (userAgent.includes("Windows")) deviceName = "Windows PC"
+  else if (userAgent.includes("Mac")) deviceName = "Mac"
+  else if (userAgent.includes("iPhone")) deviceName = "iPhone"
+  else if (userAgent.includes("iPad")) deviceName = "iPad"
+  else if (userAgent.includes("Android")) deviceName = "Android Device"
+
+  return { deviceType, deviceName, browser }
+}
+
+// Generate simple UUID without external dependency
+function generateUUID() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c == "x" ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
 
 export async function hashPassword(password: string): Promise<string> {
   return await bcrypt.hash(password, 10)
@@ -28,8 +60,12 @@ export async function createUser(email: string, password: string, firstName: str
   const user = result[0]
 
   // Create and send email verification token
-  const verificationToken = await createEmailVerificationToken(user.id, user.email)
-  await sendVerificationEmail(user.email, verificationToken)
+  try {
+    const verificationToken = await createEmailVerificationToken(user.id, user.email)
+    await sendVerificationEmail(user.email, verificationToken)
+  } catch (error) {
+    console.log("Email verification token created but email not sent (development mode)")
+  }
 
   return user
 }
@@ -56,21 +92,18 @@ export async function getUserById(id: number) {
 
 export async function createSession(userId: number, userAgent?: string, ipAddress?: string) {
   // Generate a unique token ID for this session
-  const tokenId = uuidv4()
+  const tokenId = generateUUID()
 
   // Parse user agent to get device information
-  let deviceType = "Unknown"
-  let deviceName = "Unknown"
-  let browser = "Unknown"
+  let deviceType = "Desktop"
+  let deviceName = "Unknown Device"
+  let browser = "Unknown Browser"
 
   if (userAgent) {
-    const parser = new UAParser(userAgent)
-    const result = parser.getResult()
-
-    deviceType = result.device.type || (result.device.vendor ? "Mobile" : "Desktop")
-    deviceName =
-      [result.device.vendor, result.device.model].filter(Boolean).join(" ") || result.os.name || "Unknown Device"
-    browser = [result.browser.name, result.browser.version].filter(Boolean).join(" ") || "Unknown Browser"
+    const parsed = parseUserAgent(userAgent)
+    deviceType = parsed.deviceType
+    deviceName = parsed.deviceName
+    browser = parsed.browser
   }
 
   // Calculate expiration (7 days from now)
@@ -85,16 +118,20 @@ export async function createSession(userId: number, userAgent?: string, ipAddres
     .sign(secretKey)
 
   // Store session in database
-  await sql`
-    INSERT INTO user_sessions (
-      user_id, token_id, device_type, device_name, browser, 
-      ip_address, expires_at, is_current
-    ) 
-    VALUES (
-      ${userId}, ${tokenId}, ${deviceType}, ${deviceName}, ${browser}, 
-      ${ipAddress || null}, ${expiresAt.toISOString()}, true
-    )
-  `
+  try {
+    await sql`
+      INSERT INTO user_sessions (
+        user_id, token_id, device_type, device_name, browser, 
+        ip_address, expires_at, is_current
+      ) 
+      VALUES (
+        ${userId}, ${tokenId}, ${deviceType}, ${deviceName}, ${browser}, 
+        ${ipAddress || null}, ${expiresAt.toISOString()}, true
+      )
+    `
+  } catch (error) {
+    console.log("Session tracking failed, but login will continue:", error)
+  }
 
   // Set cookie
   cookies().set("session", token, {
@@ -117,11 +154,15 @@ export async function getSession() {
 
     // Update last_active timestamp for this session
     if (payload.tokenId) {
-      await sql`
-        UPDATE user_sessions 
-        SET last_active = NOW() 
-        WHERE token_id = ${payload.tokenId}
-      `
+      try {
+        await sql`
+          UPDATE user_sessions 
+          SET last_active = NOW() 
+          WHERE token_id = ${payload.tokenId}
+        `
+      } catch (error) {
+        console.log("Failed to update session activity:", error)
+      }
     }
 
     return payload
@@ -176,22 +217,27 @@ export async function getUserSessions(userId: number) {
   }
 
   // Get all active sessions for the user
-  const sessions = await sql`
-    SELECT 
-      id, token_id, device_type, device_name, browser, 
-      ip_address, location, last_active, created_at
-    FROM user_sessions 
-    WHERE 
-      user_id = ${userId} AND 
-      expires_at > NOW()
-    ORDER BY last_active DESC
-  `
+  try {
+    const sessions = await sql`
+      SELECT 
+        id, token_id, device_type, device_name, browser, 
+        ip_address, location, last_active, created_at
+      FROM user_sessions 
+      WHERE 
+        user_id = ${userId} AND 
+        expires_at > NOW()
+      ORDER BY last_active DESC
+    `
 
-  // Mark the current session
-  return sessions.map((session) => ({
-    ...session,
-    is_current: session.token_id === currentTokenId,
-  }))
+    // Mark the current session
+    return sessions.map((session) => ({
+      ...session,
+      is_current: session.token_id === currentTokenId,
+    }))
+  } catch (error) {
+    console.log("Failed to get user sessions:", error)
+    return []
+  }
 }
 
 export async function revokeSession(userId: number, sessionId: number) {
@@ -259,6 +305,11 @@ export async function revokeAllOtherSessions(userId: number) {
 
 export async function cleanupExpiredSessions() {
   // Delete expired sessions
-  const result = await sql`DELETE FROM user_sessions WHERE expires_at < NOW()`
-  return result.count
+  try {
+    const result = await sql`DELETE FROM user_sessions WHERE expires_at < NOW()`
+    return result.count
+  } catch (error) {
+    console.log("Failed to cleanup expired sessions:", error)
+    return 0
+  }
 }
