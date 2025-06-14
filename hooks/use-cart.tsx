@@ -24,6 +24,7 @@ type CartContextType = {
   removeItem: (id: number) => Promise<void>
   clearCart: () => Promise<void>
   isLoading: boolean
+  isAuthenticated: boolean
 }
 
 const CartContext = createContext<CartContextType>({
@@ -33,11 +34,13 @@ const CartContext = createContext<CartContextType>({
   removeItem: async () => {},
   clearCart: async () => {},
   isLoading: false,
+  isAuthenticated: false,
 })
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
@@ -45,7 +48,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await fetch("/api/cart")
 
-        // If the response is not OK, don't throw an error, just set empty cart
+        if (response.status === 401) {
+          // User is not authenticated
+          setIsAuthenticated(false)
+          setItems([])
+          return
+        }
+
         if (!response.ok) {
           console.log("Cart fetch returned status:", response.status)
           setItems([])
@@ -54,10 +63,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
         const data = await response.json()
         setItems(data)
+        setIsAuthenticated(true)
       } catch (error) {
         console.error("Error fetching cart:", error)
-        // Don't show error toast on initial load, just set empty cart
         setItems([])
+        setIsAuthenticated(false)
       } finally {
         setIsInitialized(true)
       }
@@ -67,6 +77,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const addItem = async (productId: number, quantity = 1) => {
+    if (!isAuthenticated) {
+      throw new Error("Authentication required")
+    }
+
     setIsLoading(true)
     try {
       const response = await fetch("/api/cart", {
@@ -78,24 +92,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json()
 
       if (!response.ok) {
-        // If unauthorized, show login prompt
         if (response.status === 401) {
-          toast({
-            title: "Login required",
-            description: "Please log in to add items to your cart",
-            variant: "destructive",
-          })
-          return
+          setIsAuthenticated(false)
+          throw new Error("Please log in to add items to your cart")
         }
 
-        // Handle stock-related errors
         if (response.status === 400 && data.message) {
-          toast({
-            title: "Stock Error",
-            description: data.message,
-            variant: "destructive",
-          })
-          return
+          throw new Error(data.message)
         }
 
         throw new Error(data.message || "Failed to add item to cart")
@@ -107,17 +110,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         description: "Your item has been added to the cart successfully.",
       })
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      })
+      throw error // Re-throw to be handled by the component
     } finally {
       setIsLoading(false)
     }
   }
 
   const updateItem = async (id: number, quantity: number) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login required",
+        description: "Please log in to update your cart",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
     try {
       const response = await fetch(`/api/cart/${id}`, {
@@ -129,8 +137,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json()
 
       if (!response.ok) {
-        // If unauthorized, show login prompt
         if (response.status === 401) {
+          setIsAuthenticated(false)
           toast({
             title: "Login required",
             description: "Please log in to update your cart",
@@ -139,7 +147,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // Handle stock-related errors
         if (response.status === 400 && data.message) {
           toast({
             title: "Stock Error",
@@ -171,6 +178,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   const removeItem = async (id: number) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login required",
+        description: "Please log in to remove items from your cart",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
     try {
       const response = await fetch(`/api/cart/${id}`, {
@@ -180,8 +196,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) {
         const error = await response.json()
 
-        // If unauthorized, show login prompt
         if (response.status === 401) {
+          setIsAuthenticated(false)
           toast({
             title: "Login required",
             description: "Please log in to remove items from your cart",
@@ -211,6 +227,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   const clearCart = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Login required",
+        description: "Please log in to clear your cart",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
     try {
       const response = await fetch("/api/cart", {
@@ -220,8 +245,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) {
         const error = await response.json()
 
-        // If unauthorized, show login prompt
         if (response.status === 401) {
+          setIsAuthenticated(false)
           toast({
             title: "Login required",
             description: "Please log in to clear your cart",
@@ -250,7 +275,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <CartContext.Provider value={{ items, addItem, updateItem, removeItem, clearCart, isLoading }}>
+    <CartContext.Provider value={{ items, addItem, updateItem, removeItem, clearCart, isLoading, isAuthenticated }}>
       {children}
     </CartContext.Provider>
   )
