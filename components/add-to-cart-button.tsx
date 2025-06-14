@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Minus, Plus, ShoppingBag } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -12,13 +12,26 @@ import type { Product } from "@/lib/products"
 
 interface AddToCartButtonProps {
   product: Product
-  user?: any
 }
 
-export function AddToCartButton({ product, user }: AddToCartButtonProps) {
+export function AddToCartButton({ product }: AddToCartButtonProps) {
   const [quantity, setQuantity] = useState(1)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const { addItem, isLoading, items } = useCart()
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/auth/me")
+        setIsAuthenticated(response.ok)
+      } catch (error) {
+        setIsAuthenticated(false)
+      }
+    }
+    checkAuth()
+  }, [])
 
   // Calculate how many items are already in cart for this product
   const cartItem = items.find((item) => item.product_id === product.id)
@@ -60,7 +73,7 @@ export function AddToCartButton({ product, user }: AddToCartButtonProps) {
 
   const handleAddToCart = async () => {
     // Check if user is logged in
-    if (!user) {
+    if (!isAuthenticated) {
       setShowLoginDialog(true)
       return
     }
@@ -87,12 +100,16 @@ export function AddToCartButton({ product, user }: AddToCartButtonProps) {
       await addItem(product.id, quantity)
       // Reset quantity to 1 after successful add
       setQuantity(1)
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to add item to cart",
-        variant: "destructive",
-      })
+    } catch (error: any) {
+      if (error.message.includes("Authentication required")) {
+        setShowLoginDialog(true)
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to add item to cart",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -112,7 +129,7 @@ export function AddToCartButton({ product, user }: AddToCartButtonProps) {
           ) : (
             <span className="text-sm text-green-600 font-medium">In Stock</span>
           )}
-          {quantityInCart > 0 && user && (
+          {quantityInCart > 0 && isAuthenticated && (
             <span className="text-sm text-muted-foreground">({quantityInCart} in cart)</span>
           )}
         </div>
@@ -153,13 +170,13 @@ export function AddToCartButton({ product, user }: AddToCartButtonProps) {
           className="w-full"
           size="lg"
           onClick={handleAddToCart}
-          disabled={isLoading || isOutOfStock || (user && !canAddMore)}
+          disabled={isLoading || isOutOfStock || (isAuthenticated && !canAddMore)}
         >
           {isLoading ? (
             "Adding to Cart..."
           ) : isOutOfStock ? (
             "Out of Stock"
-          ) : user && !canAddMore ? (
+          ) : isAuthenticated && !canAddMore ? (
             "Maximum in Cart"
           ) : (
             <>
@@ -169,7 +186,7 @@ export function AddToCartButton({ product, user }: AddToCartButtonProps) {
         </Button>
 
         {/* Additional Stock Information */}
-        {!isOutOfStock && user && availableStock < 10 && (
+        {!isOutOfStock && isAuthenticated && availableStock < 10 && (
           <p className="text-xs text-muted-foreground">
             {availableStock === 0 ? "Maximum quantity already in cart" : `${availableStock} more available to add`}
           </p>
