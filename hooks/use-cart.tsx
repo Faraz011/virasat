@@ -14,6 +14,7 @@ type CartItem = {
   original_price: number | null
   image_url: string
   slug: string
+  stock_quantity: number
 }
 
 type CartContextType = {
@@ -74,9 +75,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ productId, quantity }),
       })
 
-      if (!response.ok) {
-        const error = await response.json()
+      const data = await response.json()
 
+      if (!response.ok) {
         // If unauthorized, show login prompt
         if (response.status === 401) {
           toast({
@@ -87,10 +88,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        throw new Error(error.message || "Failed to add item to cart")
+        // Handle stock-related errors
+        if (response.status === 400 && data.message) {
+          toast({
+            title: "Stock Error",
+            description: data.message,
+            variant: "destructive",
+          })
+          return
+        }
+
+        throw new Error(data.message || "Failed to add item to cart")
       }
 
-      const data = await response.json()
       setItems(data)
       toast({
         title: "Item added to cart",
@@ -116,9 +126,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ quantity }),
       })
 
-      if (!response.ok) {
-        const error = await response.json()
+      const data = await response.json()
 
+      if (!response.ok) {
         // If unauthorized, show login prompt
         if (response.status === 401) {
           toast({
@@ -129,10 +139,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        throw new Error(error.message || "Failed to update cart item")
+        // Handle stock-related errors
+        if (response.status === 400 && data.message) {
+          toast({
+            title: "Stock Error",
+            description: data.message,
+            variant: "destructive",
+          })
+          // Refresh cart to get current state
+          const cartResponse = await fetch("/api/cart")
+          if (cartResponse.ok) {
+            const cartData = await cartResponse.json()
+            setItems(cartData)
+          }
+          return
+        }
+
+        throw new Error(data.message || "Failed to update cart item")
       }
 
-      const data = await response.json()
       setItems(data)
     } catch (error: any) {
       toast({

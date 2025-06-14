@@ -11,7 +11,13 @@ import type { Product } from "@/lib/products"
 
 export function AddToCartButton({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1)
-  const { addItem, isLoading } = useCart()
+  const { addItem, isLoading, items } = useCart()
+
+  // Calculate how many items are already in cart for this product
+  const cartItem = items.find((item) => item.product_id === product.id)
+  const quantityInCart = cartItem?.quantity || 0
+  const availableStock = product.stock_quantity - quantityInCart
+  const maxQuantity = Math.min(product.stock_quantity, availableStock + quantity)
 
   const decreaseQuantity = () => {
     if (quantity > 1) {
@@ -20,12 +26,26 @@ export function AddToCartButton({ product }: { product: Product }) {
   }
 
   const increaseQuantity = () => {
-    if (quantity < product.stock_quantity) {
+    if (quantity < maxQuantity) {
       setQuantity(quantity + 1)
     } else {
       toast({
-        title: "Maximum stock reached",
-        description: `Only ${product.stock_quantity} items available`,
+        title: "Stock limit reached",
+        description: `Only ${availableStock} more items available (${quantityInCart} already in cart)`,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleQuantityChange = (value: string) => {
+    const val = Number.parseInt(value)
+    if (!isNaN(val) && val >= 1 && val <= maxQuantity) {
+      setQuantity(val)
+    } else if (val > maxQuantity) {
+      setQuantity(maxQuantity)
+      toast({
+        title: "Stock limit reached",
+        description: `Only ${availableStock} more items available`,
         variant: "destructive",
       })
     }
@@ -41,8 +61,19 @@ export function AddToCartButton({ product }: { product: Product }) {
       return
     }
 
+    if (availableStock < quantity) {
+      toast({
+        title: "Insufficient stock",
+        description: `Only ${availableStock} items available (${quantityInCart} already in cart)`,
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       await addItem(product.id, quantity)
+      // Reset quantity to 1 after successful add
+      setQuantity(1)
     } catch (error) {
       toast({
         title: "Error",
@@ -52,14 +83,31 @@ export function AddToCartButton({ product }: { product: Product }) {
     }
   }
 
+  const isOutOfStock = product.stock_quantity < 1
+  const isLowStock = product.stock_quantity <= 5 && product.stock_quantity > 0
+  const canAddMore = availableStock > 0
+
   return (
     <div className="flex flex-col gap-4">
+      {/* Stock Status Indicator */}
+      <div className="flex items-center gap-2">
+        {isOutOfStock ? (
+          <span className="text-sm text-red-600 font-medium">Out of Stock</span>
+        ) : isLowStock ? (
+          <span className="text-sm text-orange-600 font-medium">Only {product.stock_quantity} left in stock</span>
+        ) : (
+          <span className="text-sm text-green-600 font-medium">In Stock</span>
+        )}
+        {quantityInCart > 0 && <span className="text-sm text-muted-foreground">({quantityInCart} in cart)</span>}
+      </div>
+
+      {/* Quantity Selector */}
       <div className="flex items-center gap-2">
         <Button
           variant="outline"
           size="icon"
           onClick={decreaseQuantity}
-          disabled={quantity <= 1 || isLoading || product.stock_quantity < 1}
+          disabled={quantity <= 1 || isLoading || isOutOfStock}
         >
           <Minus className="h-4 w-4" />
           <span className="sr-only">Decrease quantity</span>
@@ -67,38 +115,49 @@ export function AddToCartButton({ product }: { product: Product }) {
         <Input
           type="number"
           min="1"
-          max={product.stock_quantity}
+          max={maxQuantity}
           className="w-16 text-center"
           value={quantity}
-          onChange={(e) => {
-            const val = Number.parseInt(e.target.value)
-            if (!isNaN(val) && val >= 1 && val <= product.stock_quantity) {
-              setQuantity(val)
-            }
-          }}
-          disabled={isLoading || product.stock_quantity < 1}
+          onChange={(e) => handleQuantityChange(e.target.value)}
+          disabled={isLoading || isOutOfStock}
         />
         <Button
           variant="outline"
           size="icon"
           onClick={increaseQuantity}
-          disabled={quantity >= product.stock_quantity || isLoading || product.stock_quantity < 1}
+          disabled={quantity >= maxQuantity || isLoading || isOutOfStock}
         >
           <Plus className="h-4 w-4" />
           <span className="sr-only">Increase quantity</span>
         </Button>
       </div>
-      <Button className="w-full" size="lg" onClick={handleAddToCart} disabled={isLoading || product.stock_quantity < 1}>
+
+      {/* Add to Cart Button */}
+      <Button
+        className="w-full"
+        size="lg"
+        onClick={handleAddToCart}
+        disabled={isLoading || isOutOfStock || !canAddMore}
+      >
         {isLoading ? (
           "Adding to Cart..."
-        ) : product.stock_quantity < 1 ? (
+        ) : isOutOfStock ? (
           "Out of Stock"
+        ) : !canAddMore ? (
+          "Maximum in Cart"
         ) : (
           <>
             <ShoppingBag className="mr-2 h-5 w-5" /> Add to Cart
           </>
         )}
       </Button>
+
+      {/* Additional Stock Information */}
+      {!isOutOfStock && availableStock < 10 && (
+        <p className="text-xs text-muted-foreground">
+          {availableStock === 0 ? "Maximum quantity already in cart" : `${availableStock} more available to add`}
+        </p>
+      )}
     </div>
   )
 }

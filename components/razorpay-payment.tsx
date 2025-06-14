@@ -23,9 +23,48 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isScriptLoaded, setIsScriptLoaded] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
 
   const handleScriptLoad = () => {
     setIsScriptLoaded(true)
+    console.log("Razorpay script loaded successfully")
+  }
+
+  const handleCashOnDelivery = async () => {
+    setIsLoading(true)
+    try {
+      // Create a cash on delivery order
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          items: orderData.items,
+          shippingAddress: orderData.shippingAddress,
+          paymentMethod: "cash_on_delivery",
+          total: amount,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to create cash on delivery order")
+      }
+
+      const data = await response.json()
+
+      toast({
+        title: "Order placed successfully",
+        description: "Your order has been placed. You can pay when the order is delivered.",
+      })
+
+      onSuccess(data.orderId)
+    } catch (error: any) {
+      console.error("Cash on delivery error:", error)
+      onError(error.message || "Failed to place order")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePayment = async () => {
@@ -38,9 +77,14 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
     }
 
     setIsLoading(true)
+    setDebugInfo(null)
 
     try {
-      // Create order on the server
+      console.log("=== Starting payment process ===")
+      console.log("Amount:", amount)
+
+      // Step 1: Create Razorpay order
+      console.log("Calling payment API...")
       const response = await fetch("/api/payment/razorpay", {
         method: "POST",
         headers: {
@@ -50,36 +94,63 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
           amount,
           currency: "INR",
           receipt: `receipt_${Date.now()}`,
-          notes: {
-            shipping_address: JSON.stringify(orderData.shippingAddress),
-          },
-          orderData,
         }),
       })
 
+      console.log("Payment API response status:", response.status)
+
+      // Get the raw text response for debugging
+      const responseText = await response.text()
+      console.log("Raw API response:", responseText)
+
+      // Parse the response as JSON
+      let data
+      try {
+        data = JSON.parse(responseText)
+        console.log("Parsed API response:", data)
+      } catch (parseError) {
+        console.error("Failed to parse API response:", parseError)
+        setDebugInfo(`API Response (Status ${response.status}): ${responseText}`)
+        throw new Error("Invalid response from payment API")
+      }
+
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || "Failed to create payment order")
+        console.error("Payment API error:", data)
+        throw new Error(data.message || "Failed to create payment order")
       }
 
-      const data = await response.json()
-
-      // Check if we have the required data
-      if (!data.keyId || !data.razorpayOrderId) {
-        throw new Error("Payment gateway configuration is incomplete. Please contact support.")
+      // Check for the exact field name razorpayOrderId
+      if (!data.razorpayOrderId) {
+        console.error("Missing razorpayOrderId in response:", data)
+        setDebugInfo(`API Response: ${JSON.stringify(data)}`)
+        throw new Error("Payment order creation failed. Missing order ID in response.")
       }
 
-      // Initialize Razorpay payment
+      if (!data.keyId) {
+        console.error("Missing keyId in response:", data)
+        throw new Error("Payment gateway configuration error")
+      }
+
+      // Check if Razorpay is available
+      if (!window.Razorpay) {
+        console.error("Razorpay script not loaded")
+        throw new Error("Payment gateway not loaded. Please refresh and try again.")
+      }
+
+      console.log("Initializing Razorpay payment with order ID:", data.razorpayOrderId)
+
+      // Step 2: Initialize Razorpay payment
       const options = {
         key: data.keyId,
         amount: data.amount,
-        currency: data.currency,
+        currency: data.currency || "INR",
         name: "Virasat",
         description: "Purchase of handwoven sarees",
-        order_id: data.razorpayOrderId,
+        order_id: data.razorpayOrderId, // Using the exact field name
         handler: async (response: any) => {
+          console.log("Payment successful:", response)
           try {
-            // Verify payment signature
+            // Step 3: Verify payment and create database order
             const verifyResponse = await fetch("/api/payment/razorpay/verify", {
               method: "POST",
               headers: {
@@ -89,6 +160,10 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
+                orderData: {
+                  ...orderData,
+                  amount: amount,
+                },
               }),
             })
 
@@ -112,24 +187,38 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         },
         prefill: {
           name: `${orderData.shippingAddress.firstName} ${orderData.shippingAddress.lastName}`,
-          email: orderData.email,
-          contact: orderData.shippingAddress.phone,
+          email: orderData.email || "",
+          contact: orderData.shippingAddress.phone || "",
         },
         notes: {
           address: orderData.shippingAddress.address,
         },
         theme: {
-          color: "#B45309", // Primary color (amber-700)
+          color: "#B45309",
+        },
+        modal: {
+          ondismiss: () => {
+            console.log("Payment modal dismissed")
+            setIsLoading(false)
+          },
         },
       }
 
+      console.log("Creating Razorpay instance with options:", {
+        ...options,
+        key: "HIDDEN_FOR_SECURITY",
+      })
+
       const razorpay = new window.Razorpay(options)
-      razorpay.open()
 
       razorpay.on("payment.failed", (response: any) => {
         console.error("Payment failed:", response.error)
+        setIsLoading(false)
         onError(response.error.description || "Payment failed")
       })
+
+      console.log("Opening Razorpay payment modal...")
+      razorpay.open()
     } catch (error: any) {
       console.error("Payment initialization error:", error)
       toast({
@@ -138,17 +227,41 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         variant: "destructive",
       })
       onError(error.message || "Failed to initialize payment")
-    } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <>
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" onLoad={handleScriptLoad} />
+    <div className="space-y-4">
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        onLoad={handleScriptLoad}
+        onError={(e) => {
+          console.error("Failed to load Razorpay script:", e)
+          toast({
+            title: "Payment gateway error",
+            description: "Failed to load payment gateway. Please try Cash on Delivery.",
+            variant: "destructive",
+          })
+        }}
+      />
+
       <Button onClick={handlePayment} disabled={isLoading || !isScriptLoaded} className="w-full" size="lg">
-        {isLoading ? "Processing..." : "Pay with Razorpay"}
+        {isLoading ? "Processing..." : !isScriptLoaded ? "Loading Payment Gateway..." : "Pay with Razorpay"}
       </Button>
-    </>
+
+      <div className="text-center text-sm text-gray-500">or</div>
+
+      <Button onClick={handleCashOnDelivery} disabled={isLoading} variant="outline" className="w-full" size="lg">
+        {isLoading ? "Processing..." : "Cash on Delivery"}
+      </Button>
+
+      {debugInfo && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm font-medium text-red-800">Debug Information:</p>
+          <pre className="mt-1 text-xs overflow-auto max-h-32 text-red-700">{debugInfo}</pre>
+        </div>
+      )}
+    </div>
   )
 }

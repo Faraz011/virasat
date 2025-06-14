@@ -37,6 +37,12 @@ export async function POST(request: Request) {
     return NextResponse.json(cart)
   } catch (error: any) {
     console.error("Error adding to cart:", error)
+
+    // Handle specific stock-related errors
+    if (error.message.includes("out of stock") || error.message.includes("insufficient stock")) {
+      return NextResponse.json({ message: error.message }, { status: 400 })
+    }
+
     return NextResponse.json({ message: error.message || "Failed to add to cart" }, { status: 500 })
   }
 }

@@ -110,6 +110,11 @@ export async function removeFromCart(cartItemId: number) {
   return getCart()
 }
 
+// Add the missing removeCartItem export (alias for removeFromCart)
+export async function removeCartItem(cartItemId: number) {
+  return removeFromCart(cartItemId)
+}
+
 export async function clearCart() {
   const user = await getCurrentUser()
 

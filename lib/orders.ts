@@ -30,7 +30,7 @@ export type ShippingAddress = {
 
 export type OrderData = {
   userId: number
-  amount: number
+  total: number // Changed from amount to total
   items: OrderItem[]
   shippingAddress: ShippingAddress
   paymentMethod: string
@@ -39,113 +39,133 @@ export type OrderData = {
 }
 
 export async function createOrder(orderData: OrderData) {
-  // Insert the order
-  const orderResult = await sql`
-    INSERT INTO orders (
-      user_id, amount, payment_method, payment_status, 
-      shipping_address, razorpay_order_id, status
-    ) VALUES (
-      ${orderData.userId}, ${orderData.amount}, ${orderData.paymentMethod}, 
-      ${orderData.paymentStatus}, ${JSON.stringify(orderData.shippingAddress)}, 
-      ${orderData.razorpayOrderId || null}, 'pending'
-    ) RETURNING id
-  `
-
-  const orderId = orderResult[0].id
-
-  // Insert order items
-  for (const item of orderData.items) {
-    await sql`
-      INSERT INTO order_items (
-        order_id, product_id, quantity, price, name
+  try {
+    // Insert the order - using total instead of amount
+    const orderResult = await sql`
+      INSERT INTO orders (
+        user_id, total, payment_method, payment_status, 
+        shipping_address, razorpay_order_id, status
       ) VALUES (
-        ${orderId}, ${item.product_id}, ${item.quantity}, ${item.price}, ${item.name}
-      )
+        ${orderData.userId}, ${orderData.total}, ${orderData.paymentMethod}, 
+        ${orderData.paymentStatus}, ${JSON.stringify(orderData.shippingAddress)}, 
+        ${orderData.razorpayOrderId || null}, 'pending'
+      ) RETURNING id
     `
 
-    // Update product stock
-    await sql`
-      UPDATE products 
-      SET stock_quantity = stock_quantity - ${item.quantity} 
-      WHERE id = ${item.product_id}
+    const orderId = orderResult[0].id
+
+    // Insert order items
+    for (const item of orderData.items) {
+      await sql`
+        INSERT INTO order_items (
+          order_id, product_id, quantity, price, name
+        ) VALUES (
+          ${orderId}, ${item.product_id}, ${item.quantity}, ${item.price}, ${item.name}
+        )
+      `
+
+      // Update product stock
+      await sql`
+        UPDATE products 
+        SET stock_quantity = stock_quantity - ${item.quantity} 
+        WHERE id = ${item.product_id}
+      `
+    }
+
+    // Get the complete order
+    const orders = await sql`
+      SELECT * FROM orders WHERE id = ${orderId}
     `
+
+    return orders[0]
+  } catch (error) {
+    console.error("Error creating order:", error)
+    throw error
   }
-
-  // Get the complete order
-  const orders = await sql`
-    SELECT * FROM orders WHERE id = ${orderId}
-  `
-
-  return orders[0]
 }
 
 export async function getOrderById(orderId: number) {
-  const orders = await sql`
-    SELECT * FROM orders WHERE id = ${orderId}
-  `
+  try {
+    const orders = await sql`
+      SELECT * FROM orders WHERE id = ${orderId}
+    `
 
-  if (orders.length === 0) {
+    if (orders.length === 0) {
+      return null
+    }
+
+    const order = orders[0]
+
+    // Get order items
+    const items = await sql`
+      SELECT * FROM order_items WHERE order_id = ${orderId}
+    `
+
+    return {
+      ...order,
+      items,
+    }
+  } catch (error) {
+    console.error("Error getting order:", error)
     return null
-  }
-
-  const order = orders[0]
-
-  // Get order items
-  const items = await sql`
-    SELECT * FROM order_items WHERE order_id = ${orderId}
-  `
-
-  return {
-    ...order,
-    items,
   }
 }
 
 export async function getUserOrders(userId?: number) {
-  if (!userId) {
-    const user = await getCurrentUser()
-    if (!user) return []
-    userId = user.id
+  try {
+    if (!userId) {
+      const user = await getCurrentUser()
+      if (!user) return []
+      userId = user.id
+    }
+
+    const orders = await sql`
+      SELECT * FROM orders 
+      WHERE user_id = ${userId}
+      ORDER BY created_at DESC
+    `
+
+    // Get items for each order
+    const ordersWithItems = await Promise.all(
+      orders.map(async (order) => {
+        const items = await sql`
+          SELECT * FROM order_items WHERE order_id = ${order.id}
+        `
+        return {
+          ...order,
+          items,
+        }
+      }),
+    )
+
+    return ordersWithItems
+  } catch (error) {
+    console.error("Error getting user orders:", error)
+    return []
   }
-
-  const orders = await sql`
-    SELECT * FROM orders 
-    WHERE user_id = ${userId}
-    ORDER BY created_at DESC
-  `
-
-  // Get items for each order
-  const ordersWithItems = await Promise.all(
-    orders.map(async (order) => {
-      const items = await sql`
-        SELECT * FROM order_items WHERE order_id = ${order.id}
-      `
-      return {
-        ...order,
-        items,
-      }
-    }),
-  )
-
-  return ordersWithItems
 }
 
 export async function updateOrderStatus(orderId: number, status: OrderStatus, additionalData: any = {}) {
-  // Update the order status
-  await sql`
-    UPDATE orders 
-    SET 
-      status = ${status}, 
-      payment_status = CASE 
-        WHEN ${status} = 'paid' THEN 'paid'
-        WHEN ${status} = 'refunded' THEN 'refunded'
-        WHEN ${status} = 'failed' THEN 'failed'
-        ELSE payment_status
-      END,
-      metadata = COALESCE(metadata, '{}'::jsonb) || ${JSON.stringify(additionalData)}::jsonb,
-      updated_at = CURRENT_TIMESTAMP
-    WHERE id = ${orderId}
-  `
+  try {
+    // Update the order status
+    await sql`
+      UPDATE orders 
+      SET 
+        status = ${status}, 
+        payment_status = CASE 
+          WHEN ${status} = 'paid' THEN 'paid'
+          WHEN ${status} = 'refunded' THEN 'refunded'
+          WHEN ${status} = 'failed' THEN 'failed'
+          ELSE payment_status
+        END,
+        metadata = COALESCE(metadata, '{}'::jsonb) || ${JSON.stringify(additionalData)}::jsonb,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${orderId}
+    `
 
-  return getOrderById(orderId)
+    return getOrderById(orderId)
+  } catch (error) {
+    console.error("Error updating order status:", error)
+    throw error
+  }
 }
