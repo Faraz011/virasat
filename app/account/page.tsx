@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LogoutButton } from "@/components/logout-button"
-import { Shield } from "lucide-react"
+import { Package, MapPin, User } from "lucide-react"
 
 export const metadata = {
   title: "My Account - Virasat",
@@ -40,7 +40,10 @@ export default async function AccountPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle>Personal Information</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Personal Information
+                </CardTitle>
                 <CardDescription>Your account details and preferences</CardDescription>
               </CardHeader>
               <CardContent>
@@ -70,7 +73,10 @@ export default async function AccountPage() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle>Recent Orders</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Recent Orders
+                </CardTitle>
                 <CardDescription>Track and manage your recent purchases</CardDescription>
               </CardHeader>
               <CardContent>
@@ -85,7 +91,10 @@ export default async function AccountPage() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle>Saved Addresses</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  Saved Addresses
+                </CardTitle>
                 <CardDescription>Manage your shipping and billing addresses</CardDescription>
               </CardHeader>
               <CardContent>
@@ -101,18 +110,27 @@ export default async function AccountPage() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle>Security</CardTitle>
-              <CardDescription>Manage your account security and sessions</CardDescription>
+              <CardTitle>Quick Actions</CardTitle>
+              <CardDescription>Common account actions</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/account/password">Change Password</Link>
+                  <Link href="/account/orders">
+                    <Package className="mr-2 h-4 w-4" />
+                    View Orders
+                  </Link>
                 </Button>
                 <Button variant="outline" size="sm" asChild>
-                  <Link href="/account/sessions">
-                    <Shield className="mr-2 h-4 w-4" />
-                    Manage Devices
+                  <Link href="/account/addresses">
+                    <MapPin className="mr-2 h-4 w-4" />
+                    Manage Addresses
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/account/settings">
+                    <User className="mr-2 h-4 w-4" />
+                    Edit Profile
                   </Link>
                 </Button>
                 <LogoutButton />
@@ -129,6 +147,7 @@ export default async function AccountPage() {
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
+                <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-4">You haven't placed any orders yet.</p>
                 <Button asChild>
                   <Link href="/shop">Start Shopping</Link>
@@ -146,8 +165,11 @@ export default async function AccountPage() {
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
+                <MapPin className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-4">You haven't added any addresses yet.</p>
-                <Button>Add New Address</Button>
+                <Button asChild>
+                  <Link href="/account/addresses">Add New Address</Link>
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -157,7 +179,7 @@ export default async function AccountPage() {
           <Card>
             <CardHeader>
               <CardTitle>Account Settings</CardTitle>
-              <CardDescription>Manage your account preferences and security</CardDescription>
+              <CardDescription>Manage your account preferences</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -166,22 +188,6 @@ export default async function AccountPage() {
                 <Button variant="outline" size="sm">
                   Edit Profile
                 </Button>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-lg font-medium">Security</h3>
-                <p className="text-sm text-muted-foreground">Update your password and security preferences.</p>
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm">
-                    Change Password
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href="/account/sessions">
-                      <Shield className="mr-2 h-4 w-4" />
-                      Manage Devices
-                    </Link>
-                  </Button>
-                </div>
               </div>
 
               <div className="space-y-2">
