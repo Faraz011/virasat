@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { updateCartItem, removeCartItem } from "@/lib/cart"
+import { removeFromCart, updateCartItem } from "@/lib/cart"
 import { getCurrentUser } from "@/lib/auth"
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
@@ -10,23 +10,21 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const { quantity } = await request.json()
-    const itemId = Number.parseInt(params.id)
-
-    if (!itemId || !quantity || quantity < 1) {
-      return NextResponse.json({ message: "Invalid request data" }, { status: 400 })
+    const cartItemId = Number.parseInt(params.id)
+    if (isNaN(cartItemId)) {
+      return NextResponse.json({ message: "Invalid cart item ID" }, { status: 400 })
     }
 
-    const cart = await updateCartItem(itemId, quantity)
+    const { quantity } = await request.json()
+
+    if (quantity === undefined || quantity < 0) {
+      return NextResponse.json({ message: "Invalid quantity" }, { status: 400 })
+    }
+
+    const cart = await updateCartItem(cartItemId, quantity)
     return NextResponse.json(cart)
   } catch (error: any) {
     console.error("Error updating cart item:", error)
-
-    // Handle specific stock-related errors
-    if (error.message.includes("out of stock") || error.message.includes("insufficient stock")) {
-      return NextResponse.json({ message: error.message }, { status: 400 })
-    }
-
     return NextResponse.json({ message: error.message || "Failed to update cart item" }, { status: 500 })
   }
 }
@@ -39,13 +37,12 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
     }
 
-    const itemId = Number.parseInt(params.id)
-
-    if (!itemId) {
-      return NextResponse.json({ message: "Invalid item ID" }, { status: 400 })
+    const cartItemId = Number.parseInt(params.id)
+    if (isNaN(cartItemId)) {
+      return NextResponse.json({ message: "Invalid cart item ID" }, { status: 400 })
     }
 
-    const cart = await removeCartItem(itemId)
+    const cart = await removeFromCart(cartItemId)
     return NextResponse.json(cart)
   } catch (error: any) {
     console.error("Error removing cart item:", error)
