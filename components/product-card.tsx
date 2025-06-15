@@ -1,44 +1,44 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Heart, Star } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useCart } from "@/hooks/use-cart"
+import { useAuth } from "@/contexts/auth-context"
 import { toast } from "@/components/ui/use-toast"
 import { LoginReminderDialog } from "@/components/login-reminder-dialog"
 import type { Product } from "@/lib/products"
 
 export function ProductCard({ product }: { product: Product }) {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const { addItem, isLoading } = useCart()
-
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch("/api/auth/me")
-        setIsAuthenticated(response.ok)
-      } catch (error) {
-        setIsAuthenticated(false)
-      }
-    }
-    checkAuth()
-  }, [])
+  const { isAuthenticated, isLoading: authLoading, checkAuth } = useAuth()
 
   const handleAddToCart = async () => {
-    if (!isAuthenticated) {
-      setShowLoginDialog(true)
+    console.log("Product card add to cart - Auth state:", { isAuthenticated, authLoading })
+
+    // If still loading auth, wait
+    if (authLoading) {
       return
+    }
+
+    // Double-check authentication
+    if (!isAuthenticated) {
+      await checkAuth()
+
+      if (!isAuthenticated) {
+        setShowLoginDialog(true)
+        return
+      }
     }
 
     try {
       await addItem(product.id, 1)
     } catch (error: any) {
-      if (error.message.includes("Authentication required")) {
+      if (error.message.includes("Authentication required") || error.message.includes("Please log in")) {
         setShowLoginDialog(true)
       } else {
         toast({
@@ -101,8 +101,18 @@ export function ProductCard({ product }: { product: Product }) {
               <span className="text-xs text-muted-foreground ml-1">({product.review_count})</span>
             </div>
           </div>
-          <Button className="w-full mt-3" onClick={handleAddToCart} disabled={isLoading || product.stock_quantity < 1}>
-            {isLoading ? "Adding..." : product.stock_quantity < 1 ? "Out of Stock" : "Add to Cart"}
+          <Button
+            className="w-full mt-3"
+            onClick={handleAddToCart}
+            disabled={authLoading || isLoading || product.stock_quantity < 1}
+          >
+            {authLoading
+              ? "Checking..."
+              : isLoading
+                ? "Adding..."
+                : product.stock_quantity < 1
+                  ? "Out of Stock"
+                  : "Add to Cart"}
           </Button>
         </CardContent>
       </Card>

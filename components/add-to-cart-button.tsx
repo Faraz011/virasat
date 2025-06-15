@@ -19,7 +19,9 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
   const [quantity, setQuantity] = useState(1)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const { addItem, isLoading, items } = useCart()
-  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const { isAuthenticated, isLoading: authLoading, checkAuth } = useAuth()
+
+  console.log("AddToCartButton auth state:", { isAuthenticated, authLoading })
 
   // Calculate how many items are already in cart for this product
   const cartItem = items.find((item) => item.product_id === product.id)
@@ -60,16 +62,28 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
   }
 
   const handleAddToCart = async () => {
-    // Show login dialog only if user is not authenticated
-    if (!authLoading && !isAuthenticated) {
-      setShowLoginDialog(true)
+    console.log("Add to cart clicked - Auth state:", { isAuthenticated, authLoading })
+
+    // If still loading auth, wait a moment and recheck
+    if (authLoading) {
+      console.log("Auth still loading, waiting...")
       return
     }
 
-    // Don't proceed if still checking authentication
-    if (authLoading) {
-      return
+    // Double-check authentication before showing popup
+    if (!isAuthenticated) {
+      console.log("User not authenticated, checking auth again...")
+      await checkAuth()
+
+      // After recheck, if still not authenticated, show popup
+      if (!isAuthenticated) {
+        console.log("Still not authenticated after recheck, showing login dialog")
+        setShowLoginDialog(true)
+        return
+      }
     }
+
+    console.log("User is authenticated, proceeding with add to cart")
 
     if (product.stock_quantity < 1) {
       toast({
@@ -94,11 +108,17 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
       // Reset quantity to 1 after successful add
       setQuantity(1)
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to add item to cart",
-        variant: "destructive",
-      })
+      console.error("Add to cart error:", error)
+      if (error.message.includes("Authentication required") || error.message.includes("Please log in")) {
+        console.log("Auth error in add to cart, showing login dialog")
+        setShowLoginDialog(true)
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to add item to cart",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -129,7 +149,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
             variant="outline"
             size="icon"
             onClick={decreaseQuantity}
-            disabled={quantity <= 1 || isLoading || isOutOfStock || authLoading}
+            disabled={quantity <= 1 || isLoading || isOutOfStock}
           >
             <Minus className="h-4 w-4" />
             <span className="sr-only">Decrease quantity</span>
@@ -141,13 +161,13 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
             className="w-16 text-center"
             value={quantity}
             onChange={(e) => handleQuantityChange(e.target.value)}
-            disabled={isLoading || isOutOfStock || authLoading}
+            disabled={isLoading || isOutOfStock}
           />
           <Button
             variant="outline"
             size="icon"
             onClick={increaseQuantity}
-            disabled={quantity >= maxQuantity || isLoading || isOutOfStock || authLoading}
+            disabled={quantity >= maxQuantity || isLoading || isOutOfStock}
           >
             <Plus className="h-4 w-4" />
             <span className="sr-only">Increase quantity</span>
@@ -159,10 +179,10 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
           className="w-full"
           size="lg"
           onClick={handleAddToCart}
-          disabled={isLoading || isOutOfStock || authLoading || (isAuthenticated && !canAddMore)}
+          disabled={isLoading || isOutOfStock || (isAuthenticated && !canAddMore)}
         >
           {authLoading ? (
-            "Loading..."
+            "Checking..."
           ) : isLoading ? (
             "Adding to Cart..."
           ) : isOutOfStock ? (
