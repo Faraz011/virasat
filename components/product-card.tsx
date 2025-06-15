@@ -24,6 +24,7 @@ export function ProductCard({ product }: { product: Product }) {
 
     // Wait for auth check to complete
     if (authLoading) {
+      console.log("Auth still loading, waiting...")
       return
     }
 
@@ -44,9 +45,17 @@ export function ProductCard({ product }: { product: Product }) {
       })
     } catch (error: any) {
       console.error("Add to cart error:", error)
-      if (error.message.includes("Authentication") || error.message.includes("login")) {
+
+      // If authentication error, show login dialog
+      if (
+        error.message.includes("Authentication required") ||
+        error.message.includes("Unauthorized") ||
+        error.message.includes("Please log in")
+      ) {
+        console.log("Authentication error, showing login dialog")
         setShowLoginDialog(true)
       } else {
+        // For other errors, show error toast
         toast({
           title: "Error",
           description: error.message || "Failed to add item to cart",

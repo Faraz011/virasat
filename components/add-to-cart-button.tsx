@@ -71,15 +71,8 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
     }
 
     // Show login dialog if not authenticated
-    if (isAuthenticated === false) {
+    if (isAuthenticated === false || isAuthenticated === null) {
       console.log("User not authenticated, showing login dialog")
-      setShowLoginDialog(true)
-      return
-    }
-
-    // If authenticated is null, something went wrong
-    if (isAuthenticated === null) {
-      console.log("Auth state unknown, showing login dialog")
       setShowLoginDialog(true)
       return
     }
@@ -113,9 +106,17 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
       })
     } catch (error: any) {
       console.error("Add to cart error:", error)
-      if (error.message.includes("Authentication") || error.message.includes("login")) {
+
+      // If authentication error, show login dialog
+      if (
+        error.message.includes("Authentication required") ||
+        error.message.includes("Unauthorized") ||
+        error.message.includes("Please log in")
+      ) {
+        console.log("Authentication error, showing login dialog")
         setShowLoginDialog(true)
       } else {
+        // For other errors, show error toast
         toast({
           title: "Error",
           description: error.message || "Failed to add item to cart",
