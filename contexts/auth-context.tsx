@@ -8,7 +8,7 @@ interface User {
   id: number
   name: string
   email: string
-  email_verified: boolean
+  email_verified?: boolean
 }
 
 interface AuthContextType {
@@ -34,16 +34,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   const checkAuth = async () => {
+    setIsLoading(true)
     try {
-      const response = await fetch("/api/auth/me")
+      const response = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "include", // Important for cookies
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      })
+
       if (response.ok) {
         const userData = await response.json()
+        console.log("Auth check successful:", userData)
         setUser(userData)
       } else {
+        console.log("Auth check failed:", response.status)
         setUser(null)
       }
     } catch (error) {
-      console.error("Auth check failed:", error)
+      console.error("Auth check error:", error)
       setUser(null)
     } finally {
       setIsLoading(false)
@@ -51,15 +61,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const login = (userData: User) => {
+    console.log("Login called with:", userData)
     setUser(userData)
+    setIsLoading(false)
   }
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" })
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      })
       setUser(null)
     } catch (error) {
       console.error("Logout failed:", error)
+      setUser(null)
     }
   }
 
@@ -70,11 +86,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = {
     user,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !isLoading,
     login,
     logout,
     checkAuth,
   }
+
+  console.log("Auth context state:", { user: !!user, isLoading, isAuthenticated: !!user && !isLoading })
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

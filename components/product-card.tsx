@@ -1,46 +1,61 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Heart, Star } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useCart } from "@/hooks/use-cart"
+import { useAuthCheck } from "@/hooks/use-auth-check"
 import { toast } from "@/components/ui/use-toast"
 import { LoginReminderDialog } from "@/components/login-reminder-dialog"
 import type { Product } from "@/lib/products"
 
 export function ProductCard({ product }: { product: Product }) {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const { addItem, isLoading } = useCart()
+  const { isAuthenticated, isLoading: authLoading } = useAuthCheck()
 
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch("/api/auth/me")
-        setIsAuthenticated(response.ok)
-      } catch (error) {
-        setIsAuthenticated(false)
-      }
-    }
-    checkAuth()
-  }, [])
+  console.log("ProductCard - Auth state:", { isAuthenticated, authLoading })
 
   const handleAddToCart = async () => {
-    if (!isAuthenticated) {
+    console.log("Product card add to cart clicked:", { isAuthenticated, authLoading })
+
+    // Wait for auth check to complete
+    if (authLoading) {
+      console.log("Auth still loading, waiting...")
+      return
+    }
+
+    // Show login dialog if not authenticated
+    if (isAuthenticated === false || isAuthenticated === null) {
+      console.log("User not authenticated, showing login dialog")
       setShowLoginDialog(true)
       return
     }
 
+    console.log("User authenticated, adding to cart")
+
     try {
       await addItem(product.id, 1)
+      toast({
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart`,
+      })
     } catch (error: any) {
-      if (error.message.includes("Authentication required")) {
+      console.error("Add to cart error:", error)
+
+      // If authentication error, show login dialog
+      if (
+        error.message.includes("Authentication required") ||
+        error.message.includes("Unauthorized") ||
+        error.message.includes("Please log in")
+      ) {
+        console.log("Authentication error, showing login dialog")
         setShowLoginDialog(true)
       } else {
+        // For other errors, show error toast
         toast({
           title: "Error",
           description: error.message || "Failed to add item to cart",
@@ -101,8 +116,18 @@ export function ProductCard({ product }: { product: Product }) {
               <span className="text-xs text-muted-foreground ml-1">({product.review_count})</span>
             </div>
           </div>
-          <Button className="w-full mt-3" onClick={handleAddToCart} disabled={isLoading || product.stock_quantity < 1}>
-            {isLoading ? "Adding..." : product.stock_quantity < 1 ? "Out of Stock" : "Add to Cart"}
+          <Button
+            className="w-full mt-3"
+            onClick={handleAddToCart}
+            disabled={authLoading || isLoading || product.stock_quantity < 1}
+          >
+            {authLoading
+              ? "Checking..."
+              : isLoading
+                ? "Adding..."
+                : product.stock_quantity < 1
+                  ? "Out of Stock"
+                  : "Add to Cart"}
           </Button>
         </CardContent>
       </Card>

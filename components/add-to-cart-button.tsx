@@ -6,7 +6,7 @@ import { Minus, Plus, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useCart } from "@/hooks/use-cart"
-import { useAuth } from "@/contexts/auth-context"
+import { useAuthCheck } from "@/hooks/use-auth-check"
 import { toast } from "@/components/ui/use-toast"
 import { LoginReminderDialog } from "@/components/login-reminder-dialog"
 import type { Product } from "@/lib/products"
@@ -19,7 +19,9 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
   const [quantity, setQuantity] = useState(1)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const { addItem, isLoading, items } = useCart()
-  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const { isAuthenticated, isLoading: authLoading } = useAuthCheck()
+
+  console.log("AddToCartButton - Auth state:", { isAuthenticated, authLoading })
 
   // Calculate how many items are already in cart for this product
   const cartItem = items.find((item) => item.product_id === product.id)
@@ -60,16 +62,22 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
   }
 
   const handleAddToCart = async () => {
-    // Show login dialog only if user is not authenticated
-    if (!authLoading && !isAuthenticated) {
+    console.log("Add to cart clicked:", { isAuthenticated, authLoading })
+
+    // Wait for auth check to complete
+    if (authLoading) {
+      console.log("Auth still loading...")
+      return
+    }
+
+    // Show login dialog if not authenticated
+    if (isAuthenticated === false || isAuthenticated === null) {
+      console.log("User not authenticated, showing login dialog")
       setShowLoginDialog(true)
       return
     }
 
-    // Don't proceed if still checking authentication
-    if (authLoading) {
-      return
-    }
+    console.log("User authenticated, proceeding with add to cart")
 
     if (product.stock_quantity < 1) {
       toast({
@@ -91,14 +99,30 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
 
     try {
       await addItem(product.id, quantity)
-      // Reset quantity to 1 after successful add
       setQuantity(1)
-    } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to add item to cart",
-        variant: "destructive",
+        title: "Added to cart",
+        description: `${product.name} has been added to your cart`,
       })
+    } catch (error: any) {
+      console.error("Add to cart error:", error)
+
+      // If authentication error, show login dialog
+      if (
+        error.message.includes("Authentication required") ||
+        error.message.includes("Unauthorized") ||
+        error.message.includes("Please log in")
+      ) {
+        console.log("Authentication error, showing login dialog")
+        setShowLoginDialog(true)
+      } else {
+        // For other errors, show error toast
+        toast({
+          title: "Error",
+          description: error.message || "Failed to add item to cart",
+          variant: "destructive",
+        })
+      }
     }
   }
 
@@ -118,7 +142,7 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
           ) : (
             <span className="text-sm text-green-600 font-medium">In Stock</span>
           )}
-          {quantityInCart > 0 && isAuthenticated && (
+          {quantityInCart > 0 && isAuthenticated === true && (
             <span className="text-sm text-muted-foreground">({quantityInCart} in cart)</span>
           )}
         </div>
@@ -159,15 +183,15 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
           className="w-full"
           size="lg"
           onClick={handleAddToCart}
-          disabled={isLoading || isOutOfStock || authLoading || (isAuthenticated && !canAddMore)}
+          disabled={authLoading || isLoading || isOutOfStock || (isAuthenticated === true && !canAddMore)}
         >
           {authLoading ? (
-            "Loading..."
+            "Checking login..."
           ) : isLoading ? (
             "Adding to Cart..."
           ) : isOutOfStock ? (
             "Out of Stock"
-          ) : isAuthenticated && !canAddMore ? (
+          ) : isAuthenticated === true && !canAddMore ? (
             "Maximum in Cart"
           ) : (
             <>
@@ -177,14 +201,14 @@ export function AddToCartButton({ product }: AddToCartButtonProps) {
         </Button>
 
         {/* Additional Stock Information */}
-        {!isOutOfStock && isAuthenticated && availableStock < 10 && (
+        {!isOutOfStock && isAuthenticated === true && availableStock < 10 && (
           <p className="text-xs text-muted-foreground">
             {availableStock === 0 ? "Maximum quantity already in cart" : `${availableStock} more available to add`}
           </p>
         )}
       </div>
 
-      {/* Login Reminder Dialog - Only shows when not authenticated */}
+      {/* Login Reminder Dialog */}
       <LoginReminderDialog
         open={showLoginDialog}
         onOpenChange={setShowLoginDialog}
