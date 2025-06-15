@@ -48,6 +48,9 @@ export function Header({ user }: { user: any }) {
     }
   }
 
+  // Log user state for debugging
+  console.log("Header user state:", !!user)
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background">
       <div className="container flex h-16 items-center justify-between">
