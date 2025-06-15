@@ -308,6 +308,17 @@ export async function cleanupExpiredSessions() {
   }
 }
 
+// Token verification function - this was missing!
+export async function verifyToken(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, secretKey)
+    return payload
+  } catch (error) {
+    console.error("Token verification failed:", error)
+    return null
+  }
+}
+
 // Email verification functions (simplified for now)
 export async function createEmailVerificationToken(userId: number, email: string) {
   // For development, just return a simple token
