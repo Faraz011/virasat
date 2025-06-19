@@ -1,5 +1,6 @@
 import { sql } from "./db"
 import { getCurrentUser } from "./auth"
+import { saveAddress } from "./addresses"
 
 export type OrderStatus =
   | "pending"
@@ -38,23 +39,34 @@ export type OrderData = {
   paymentMethod: string
   paymentStatus: string
   razorpayOrderId?: string
+  razorpayPaymentId?: string
 }
 
 export async function createOrder(orderData: OrderData) {
   try {
+    console.log("📦 Creating order in database...")
+
+    // Generate a unique order number for customer reference
+    const orderNumber = `VIR${Date.now()}${Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0")}`
+
     // Insert the order
     const orderResult = await sql`
       INSERT INTO orders (
-        user_id, total, payment_method, payment_status, 
-        shipping_address, razorpay_order_id, status
+        user_id, order_number, total, payment_method, payment_status, 
+        shipping_address, razorpay_order_id, razorpay_payment_id, status
       ) VALUES (
-        ${orderData.userId}, ${orderData.total}, ${orderData.paymentMethod}, 
+        ${orderData.userId}, ${orderNumber}, ${orderData.total}, ${orderData.paymentMethod}, 
         ${orderData.paymentStatus}, ${JSON.stringify(orderData.shippingAddress)}, 
-        ${orderData.razorpayOrderId || null}, 'pending'
-      ) RETURNING id
+        ${orderData.razorpayOrderId || null}, ${orderData.razorpayPaymentId || null}, 'pending'
+      ) RETURNING id, order_number
     `
 
     const orderId = orderResult[0].id
+    const generatedOrderNumber = orderResult[0].order_number
+
+    console.log("✅ Order created:", { orderId, orderNumber: generatedOrderNumber })
 
     // Insert order items
     for (const item of orderData.items) {
@@ -74,14 +86,38 @@ export async function createOrder(orderData: OrderData) {
       `
     }
 
-    // Get the complete order
-    const orders = await sql`
-      SELECT * FROM orders WHERE id = ${orderId}
-    `
+    // Save shipping address to addresses table (matching existing schema)
+    try {
+      console.log("📍 Saving shipping address...")
 
-    return orders[0]
+      // Combine firstName and lastName into address_line1 since we don't have name fields
+      const fullAddress = `${orderData.shippingAddress.firstName} ${orderData.shippingAddress.lastName}, ${orderData.shippingAddress.address}`
+
+      await saveAddress({
+        user_id: orderData.userId,
+        address_line1: fullAddress,
+        address_line2: `Phone: ${orderData.shippingAddress.phone}`, // Store phone in address_line2
+        city: orderData.shippingAddress.city,
+        state: orderData.shippingAddress.state,
+        postal_code: orderData.shippingAddress.postalCode,
+        country: "India",
+        is_default: false, // Don't set as default automatically
+      })
+      console.log("✅ Shipping address saved")
+    } catch (addressError) {
+      console.warn("⚠️ Failed to save address (non-critical):", addressError)
+      // Don't fail the order creation if address saving fails
+    }
+
+    // Get the complete order with items
+    const completeOrder = await getOrderById(orderId)
+
+    return {
+      ...completeOrder,
+      orderNumber: generatedOrderNumber,
+    }
   } catch (error) {
-    console.error("Error creating order:", error)
+    console.error("❌ Error creating order:", error)
     throw error
   }
 }
