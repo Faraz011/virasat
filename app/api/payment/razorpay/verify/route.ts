@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { createOrder } from "@/lib/orders"
+import { config, validateEnvironmentVariables } from "@/lib/config"
 import crypto from "crypto"
 
 export async function POST(request: Request) {
   try {
     console.log("=== Payment Verification API Called ===")
+
+    // Validate environment variables
+    try {
+      validateEnvironmentVariables()
+    } catch (error: any) {
+      console.error("Environment validation failed:", error.message)
+      return NextResponse.json({ message: "Server configuration error. Please contact support." }, { status: 500 })
+    }
 
     const user = await getCurrentUser()
     if (!user) {
@@ -19,16 +28,13 @@ export async function POST(request: Request) {
       razorpay_payment_id,
       razorpay_signature: razorpay_signature ? "PROVIDED" : "MISSING",
       orderData: orderData ? "PROVIDED" : "MISSING",
+      mode: config.razorpay.isTestMode ? "TEST" : "LIVE",
     })
-
-    if (!process.env.RAZORPAY_KEY_SECRET) {
-      return NextResponse.json({ message: "Razorpay configuration missing" }, { status: 500 })
-    }
 
     // Verify the payment signature
     const body = razorpay_order_id + "|" + razorpay_payment_id
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", config.razorpay.keySecret)
       .update(body.toString())
       .digest("hex")
 
@@ -37,6 +43,7 @@ export async function POST(request: Request) {
     console.log("Signature verification:", isAuthentic ? "SUCCESS" : "FAILED")
 
     if (!isAuthentic) {
+      console.error("Payment signature verification failed")
       return NextResponse.json({ message: "Payment verification failed" }, { status: 400 })
     }
 
@@ -50,27 +57,41 @@ export async function POST(request: Request) {
       paymentMethod: "razorpay",
       paymentStatus: "paid",
       razorpayOrderId: razorpay_order_id,
+      razorpayPaymentId: razorpay_payment_id,
     })
 
     console.log("Database order created:", order.id)
 
     // Clear the user's cart after successful order
-    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/cart/clear`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: request.headers.get("cookie") || "",
-      },
-    })
+    try {
+      await fetch(`${config.app.url}/api/cart/clear`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: request.headers.get("cookie") || "",
+        },
+      })
+      console.log("Cart cleared successfully")
+    } catch (cartError) {
+      console.error("Failed to clear cart:", cartError)
+      // Don't fail the order creation if cart clearing fails
+    }
 
     return NextResponse.json({
       message: "Payment verified successfully",
       orderId: order.id,
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
+      isTestMode: config.razorpay.isTestMode,
     })
   } catch (error: any) {
     console.error("Payment verification error:", error)
-    return NextResponse.json({ message: "Payment verification failed" }, { status: 500 })
+    return NextResponse.json(
+      {
+        message: "Payment verification failed",
+        error: process.env.NODE_ENV === "development" ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    )
   }
 }

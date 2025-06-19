@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Script from "next/script"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/use-toast"
+import { Badge } from "@/components/ui/badge"
 
 interface RazorpayPaymentProps {
   amount: number
@@ -23,6 +24,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [isScriptLoaded, setIsScriptLoaded] = useState(false)
+  const [isTestMode, setIsTestMode] = useState<boolean | null>(null)
 
   const handleScriptLoad = () => {
     setIsScriptLoaded(true)
@@ -47,7 +49,8 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
       })
 
       if (!response.ok) {
-        throw new Error("Failed to create cash on delivery order")
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Failed to create cash on delivery order")
       }
 
       const data = await response.json()
@@ -80,7 +83,6 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
     try {
       console.log("=== Starting Razorpay payment process ===")
       console.log("Amount:", amount)
-      console.log("Order data:", orderData)
 
       // Step 1: Create Razorpay order
       const response = await fetch("/api/payment/razorpay", {
@@ -107,11 +109,15 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         throw new Error("Missing Razorpay order ID")
       }
 
+      // Set test mode indicator
+      setIsTestMode(data.isTestMode || false)
+
       if (!window.Razorpay) {
         throw new Error("Razorpay script not loaded")
       }
 
       console.log("Initializing Razorpay payment...")
+      console.log("Mode:", data.isTestMode ? "TEST" : "LIVE")
 
       // Step 2: Initialize Razorpay payment
       const options = {
@@ -151,7 +157,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
 
             toast({
               title: "Payment successful!",
-              description: "Your order has been placed successfully.",
+              description: `Your order has been placed successfully. ${verifyData.isTestMode ? "(Test Mode)" : ""}`,
             })
 
             onSuccess(verifyData.orderId)
@@ -216,6 +222,12 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         }}
       />
 
+      {isTestMode !== null && (
+        <div className="flex justify-center">
+          <Badge variant={isTestMode ? "secondary" : "default"}>{isTestMode ? "🧪 Test Mode" : "🔒 Live Mode"}</Badge>
+        </div>
+      )}
+
       <Button onClick={handlePayment} disabled={isLoading || !isScriptLoaded} className="w-full" size="lg">
         {isLoading ? "Processing..." : !isScriptLoaded ? "Loading Payment Gateway..." : "Pay with Razorpay"}
       </Button>
@@ -225,6 +237,12 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
       <Button onClick={handleCashOnDelivery} disabled={isLoading} variant="outline" className="w-full" size="lg">
         {isLoading ? "Processing..." : "Cash on Delivery"}
       </Button>
+
+      {isTestMode && (
+        <div className="text-xs text-center text-gray-500 bg-yellow-50 p-2 rounded">
+          💡 Test Mode: Use test card numbers for payment testing
+        </div>
+      )}
     </div>
   )
 }
