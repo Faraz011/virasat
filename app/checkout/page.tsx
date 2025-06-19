@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator"
 import { useCart } from "@/hooks/use-cart"
 import { toast } from "@/components/ui/use-toast"
 import { RazorpayPayment } from "@/components/razorpay-payment"
+import { OrderSuccessPopup } from "@/components/order-success-popup"
 
 const checkoutSchema = z.object({
   firstName: z.string().min(2, { message: "First name must be at least 2 characters" }),
@@ -40,6 +41,8 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showRazorpay, setShowRazorpay] = useState(false)
   const [orderData, setOrderData] = useState<any>(null)
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false)
+  const [successOrderData, setSuccessOrderData] = useState<any>(null)
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const shipping = subtotal > 5000 ? 0 : 150
@@ -97,6 +100,7 @@ export default function CheckoutPage() {
         shippingAddress,
         email: data.email,
         notes: data.notes,
+        total: total,
       }
 
       setOrderData(preparedOrderData)
@@ -109,12 +113,13 @@ export default function CheckoutPage() {
         const response = await fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             items: orderItems,
             shippingAddress,
-            paymentMethod: "cod",
-            amount: total,
-            notes: data.notes,
+            paymentMethod: "cash_on_delivery",
+            paymentStatus: "pending",
+            total: total,
           }),
         })
 
@@ -128,13 +133,15 @@ export default function CheckoutPage() {
         // Clear cart after successful order
         await clearCart()
 
-        toast({
-          title: "Order placed successfully",
-          description: "Thank you for your purchase!",
+        // Show success popup
+        setSuccessOrderData({
+          id: orderResponse.id,
+          orderNumber: orderResponse.orderNumber || `VIR${orderResponse.id}`,
+          total: total,
+          paymentMethod: "cash_on_delivery",
+          isTestMode: false,
         })
-
-        // Redirect to success page
-        router.push(`/checkout/success?orderId=${orderResponse.id}`)
+        setShowSuccessPopup(true)
       }
     } catch (error: any) {
       toast({
@@ -152,8 +159,32 @@ export default function CheckoutPage() {
       // Clear cart after successful payment
       await clearCart()
 
-      // Redirect to success page
-      router.push(`/checkout/success?orderId=${orderId}`)
+      // Get order details for popup
+      const orderResponse = await fetch(`/api/orders/${orderId}`, {
+        credentials: "include",
+      })
+
+      if (orderResponse.ok) {
+        const order = await orderResponse.json()
+        setSuccessOrderData({
+          id: order.id,
+          orderNumber: order.order_number || `VIR${order.id}`,
+          total: order.total,
+          paymentMethod: "razorpay",
+          isTestMode: true, // You can determine this from the order data
+        })
+        setShowSuccessPopup(true)
+      } else {
+        // Fallback if we can't get order details
+        setSuccessOrderData({
+          id: orderId,
+          orderNumber: `VIR${orderId}`,
+          total: total,
+          paymentMethod: "razorpay",
+          isTestMode: true,
+        })
+        setShowSuccessPopup(true)
+      }
     } catch (error: any) {
       toast({
         title: "Error",
@@ -172,6 +203,12 @@ export default function CheckoutPage() {
     setShowRazorpay(false)
   }
 
+  const handleSuccessPopupClose = () => {
+    setShowSuccessPopup(false)
+    setShowRazorpay(false)
+    router.push("/account/orders")
+  }
+
   if (items.length === 0) {
     return (
       <div className="container py-12 text-center">
@@ -185,252 +222,259 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container py-6 md:py-8 px-4 md:px-6">
-      <div className="flex flex-col gap-2 mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">Checkout</h1>
-        <p className="text-muted-foreground">Complete your order by providing your shipping and payment details</p>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-6 md:gap-8">
-        <div className="md:col-span-2">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-4">
-                <h2 className="text-xl font-medium">Contact Information</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="John" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Doe" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input placeholder="you@example.com" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input placeholder="9876543210" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h2 className="text-xl font-medium">Shipping Address</h2>
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="123 Main St, Apartment 4B" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Mumbai" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Maharashtra" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="postalCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Postal Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="400001" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h2 className="text-xl font-medium">Payment Method</h2>
-                <FormField
-                  control={form.control}
-                  name="paymentMethod"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex flex-col space-y-2"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="razorpay" id="razorpay" />
-                            <FormLabel htmlFor="razorpay" className="font-normal cursor-pointer">
-                              Pay Online (Credit/Debit Card, UPI, Netbanking)
-                            </FormLabel>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="cod" id="cod" />
-                            <FormLabel htmlFor="cod" className="font-normal cursor-pointer">
-                              Cash on Delivery
-                            </FormLabel>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <h2 className="text-xl font-medium">Additional Information</h2>
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Order Notes (Optional)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Special instructions for delivery or any other notes" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="pt-4">
-                {showRazorpay && orderData ? (
-                  <RazorpayPayment
-                    amount={total}
-                    orderData={orderData}
-                    onSuccess={handlePaymentSuccess}
-                    onError={handlePaymentError}
-                  />
-                ) : (
-                  <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
-                    {isSubmitting ? "Processing..." : `Place Order - ₹${total.toLocaleString("en-IN")}`}
-                  </Button>
-                )}
-              </div>
-            </form>
-          </Form>
+    <>
+      <div className="container py-6 md:py-8 px-4 md:px-6">
+        <div className="flex flex-col gap-2 mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">Checkout</h1>
+          <p className="text-muted-foreground">Complete your order by providing your shipping and payment details</p>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-lg border p-4 md:p-6 space-y-4">
-            <h2 className="text-lg font-medium">Order Summary</h2>
-            <Separator />
-            <div className="space-y-4">
-              {items.map((item) => (
-                <div key={item.id} className="flex gap-4">
-                  <div className="h-16 w-12 overflow-hidden rounded-md flex-shrink-0">
-                    <img
-                      src={item.image_url || "/placeholder.svg?height=64&width=48"}
-                      alt={item.name}
-                      className="h-full w-full object-cover"
+        <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+          <div className="md:col-span-2">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="space-y-4">
+                  <h2 className="text-xl font-medium">Contact Information</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium line-clamp-1">{item.name}</h3>
-                    <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                    <p className="text-sm font-medium">₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="you@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input placeholder="9876543210" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-            <Separator />
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span>₹{subtotal.toLocaleString("en-IN")}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Shipping</span>
-                <span>{shipping === 0 ? "Free" : `₹${shipping.toLocaleString("en-IN")}`}</span>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h2 className="text-xl font-medium">Shipping Address</h2>
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="123 Main St, Apartment 4B" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Mumbai" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Maharashtra" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="postalCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Postal Code</FormLabel>
+                        <FormControl>
+                          <Input placeholder="400001" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h2 className="text-xl font-medium">Payment Method</h2>
+                  <FormField
+                    control={form.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-2"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="razorpay" id="razorpay" />
+                              <FormLabel htmlFor="razorpay" className="font-normal cursor-pointer">
+                                Pay Online (Credit/Debit Card, UPI, Netbanking)
+                              </FormLabel>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="cod" id="cod" />
+                              <FormLabel htmlFor="cod" className="font-normal cursor-pointer">
+                                Cash on Delivery
+                              </FormLabel>
+                            </div>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h2 className="text-xl font-medium">Additional Information</h2>
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Order Notes (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Special instructions for delivery or any other notes" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="pt-4">
+                  {showRazorpay && orderData ? (
+                    <RazorpayPayment
+                      amount={total}
+                      orderData={orderData}
+                      onSuccess={handlePaymentSuccess}
+                      onError={handlePaymentError}
+                    />
+                  ) : (
+                    <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+                      {isSubmitting ? "Processing..." : `Place Order - ₹${total.toLocaleString("en-IN")}`}
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </Form>
+          </div>
+
+          <div className="space-y-6">
+            <div className="rounded-lg border p-4 md:p-6 space-y-4">
+              <h2 className="text-lg font-medium">Order Summary</h2>
+              <Separator />
+              <div className="space-y-4">
+                {items.map((item) => (
+                  <div key={item.id} className="flex gap-4">
+                    <div className="h-16 w-12 overflow-hidden rounded-md flex-shrink-0">
+                      <img
+                        src={item.image_url || "/placeholder.svg?height=64&width=48"}
+                        alt={item.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium line-clamp-1">{item.name}</h3>
+                      <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                      <p className="text-sm font-medium">₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
               <Separator />
-              <div className="flex justify-between font-medium">
-                <span>Total</span>
-                <span>₹{total.toLocaleString("en-IN")}</span>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>₹{subtotal.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Shipping</span>
+                  <span>{shipping === 0 ? "Free" : `₹${shipping.toLocaleString("en-IN")}`}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-medium">
+                  <span>Total</span>
+                  <span>₹{total.toLocaleString("en-IN")}</span>
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Taxes included. Free shipping on orders over ₹5,000.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground text-center">
-              Taxes included. Free shipping on orders over ₹5,000.
-            </p>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Success Popup */}
+      {showSuccessPopup && successOrderData && (
+        <OrderSuccessPopup isOpen={showSuccessPopup} onClose={handleSuccessPopupClose} orderData={successOrderData} />
+      )}
+    </>
   )
 }
