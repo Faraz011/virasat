@@ -86,19 +86,22 @@ export async function createOrder(orderData: OrderData) {
       `
     }
 
-    // Save shipping address to addresses table
+    // Save shipping address to addresses table (matching existing schema)
     try {
       console.log("📍 Saving shipping address...")
+
+      // Combine firstName and lastName into address_line1 since we don't have name fields
+      const fullAddress = `${orderData.shippingAddress.firstName} ${orderData.shippingAddress.lastName}, ${orderData.shippingAddress.address}`
+
       await saveAddress({
         user_id: orderData.userId,
-        first_name: orderData.shippingAddress.firstName,
-        last_name: orderData.shippingAddress.lastName,
-        address_line_1: orderData.shippingAddress.address,
+        address_line1: fullAddress,
+        address_line2: `Phone: ${orderData.shippingAddress.phone}`, // Store phone in address_line2
         city: orderData.shippingAddress.city,
         state: orderData.shippingAddress.state,
         postal_code: orderData.shippingAddress.postalCode,
         country: "India",
-        phone: orderData.shippingAddress.phone,
+        is_default: false, // Don't set as default automatically
       })
       console.log("✅ Shipping address saved")
     } catch (addressError) {
