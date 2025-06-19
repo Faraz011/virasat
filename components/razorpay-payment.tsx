@@ -132,10 +132,18 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
       console.log("📋 Order creation response:", orderData_response)
 
       if (!orderResponse.ok) {
-        throw new Error(orderData_response.message || orderData_response.error || "Failed to create payment order")
+        throw new Error(
+          orderData_response.message ||
+            orderData_response.error ||
+            `Payment API returned status ${orderResponse.status}`,
+        )
       }
 
-      if (!orderData_response.success || !orderData_response.orderId) {
+      /* Accept either "orderId" or legacy "razorpayOrderId" */
+      const resolvedOrderId = orderData_response.orderId || orderData_response.razorpayOrderId
+
+      if (!orderData_response.success || !resolvedOrderId) {
+        console.error("Unexpected payment API payload:", orderData_response)
         throw new Error("Invalid response from payment gateway")
       }
 
@@ -153,7 +161,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         currency: orderData_response.currency,
         name: "Virasat",
         description: "Handwoven Sarees & Traditional Wear",
-        order_id: orderData_response.orderId,
+        order_id: resolvedOrderId, // ← updated
         handler: async (response: any) => {
           console.log("✅ Payment successful:", response)
           await handlePaymentSuccess(response)
