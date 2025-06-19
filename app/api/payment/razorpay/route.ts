@@ -65,6 +65,7 @@ export async function POST(request: Request) {
     // Return the response with the correct field names
     const responseData = {
       id: order.id, // This is what the frontend expects
+      razorpayOrderId: order.id, // NEW ─ guarantee a field the client recognises
       amount: order.amount,
       currency: order.currency,
       receipt: order.receipt,

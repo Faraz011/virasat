@@ -105,7 +105,8 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         throw new Error(data.message || "Failed to create payment order")
       }
 
-      if (!data.id) {
+      const orderId = data.razorpayOrderId || data.id
+      if (!orderId) {
         throw new Error("Missing Razorpay order ID")
       }
 
@@ -122,7 +123,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         currency: data.currency || "INR",
         name: "Virasat",
         description: "Purchase of handwoven sarees",
-        order_id: data.id,
+        order_id: orderId,
         handler: async (response: any) => {
           console.log("Payment successful:", response)
           try {
