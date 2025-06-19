@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { validateRazorpayConfig, getRazorpayInstance } from "@/lib/razorpay-config"
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +14,36 @@ export async function POST(request: Request) {
 
     console.log("✅ User authenticated:", user.id)
 
-    // 2. Parse and validate request
+    // 2. Check environment variables
+    const keyId = process.env.RAZORPAY_KEY_ID
+    const keySecret = process.env.RAZORPAY_KEY_SECRET
+    const publicKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+
+    console.log("Environment variables check:")
+    console.log("- RAZORPAY_KEY_ID:", keyId ? `EXISTS (${keyId.substring(0, 10)}...)` : "MISSING")
+    console.log("- RAZORPAY_KEY_SECRET:", keySecret ? "EXISTS" : "MISSING")
+    console.log(
+      "- NEXT_PUBLIC_RAZORPAY_KEY_ID:",
+      publicKeyId ? `EXISTS (${publicKeyId.substring(0, 10)}...)` : "MISSING",
+    )
+
+    if (!keyId || !keySecret || !publicKeyId) {
+      console.error("❌ Missing Razorpay environment variables")
+      return NextResponse.json(
+        {
+          error: "Payment gateway configuration error",
+          message: "Razorpay credentials are not properly configured. Please contact support.",
+          details: {
+            keyId: !!keyId,
+            keySecret: !!keySecret,
+            publicKeyId: !!publicKeyId,
+          },
+        },
+        { status: 500 },
+      )
+    }
+
+    // 3. Parse and validate request
     const body = await request.json()
     const { amount, currency = "INR" } = body
 
@@ -26,30 +54,16 @@ export async function POST(request: Request) {
 
     console.log("✅ Request validated - Amount:", amount, "Currency:", currency)
 
-    // 3. Validate Razorpay configuration
-    const configValidation = validateRazorpayConfig()
-    if (!configValidation.isValid) {
-      /* 🔄  FALLBACK  ──────────────────────────────────────────────
-         We’re running in a preview with no secret keys.
-         Return a fake order the front-end can consume.            */
-      console.warn("⚠️  Razorpay keys missing – using stub order in preview.")
-      const stubOrderId = `order_stub_${Date.now()}`
-      return NextResponse.json({
-        success: true,
-        orderId: stubOrderId,
-        amount: Math.round(body?.amount * 100) || 10000,
-        currency: body?.currency || "INR",
-        keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_stubkey",
-        isTestMode: true,
-        _stub: true,
-      })
-    }
+    // 4. Import and initialize Razorpay
+    const Razorpay = (await import("razorpay")).default
+    const razorpay = new Razorpay({
+      key_id: keyId,
+      key_secret: keySecret,
+    })
 
-    console.log("✅ Razorpay configuration valid")
-    console.log("🧪 Test mode:", configValidation.isTestMode)
+    console.log("✅ Razorpay instance created")
 
-    // 4. Create Razorpay order
-    const razorpay = await getRazorpayInstance()
+    // 5. Create Razorpay order
     const orderOptions = {
       amount: Math.round(amount * 100), // Convert to paise
       currency: currency,
@@ -73,17 +87,36 @@ export async function POST(request: Request) {
     console.log("- Currency:", razorpayOrder.currency)
     console.log("- Status:", razorpayOrder.status)
 
-    // 5. Return response
-    const response = {
-      success: true,
-      orderId: razorpayOrder.id,
-      amount: razorpayOrder.amount,
-      currency: razorpayOrder.currency,
-      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      isTestMode: configValidation.isTestMode,
+    // 6. Validate the order response
+    if (!razorpayOrder || !razorpayOrder.id) {
+      console.error("❌ Invalid order response from Razorpay:", razorpayOrder)
+      return NextResponse.json(
+        {
+          error: "Payment gateway error",
+          message: "Failed to create a valid payment order",
+        },
+        { status: 500 },
+      )
     }
 
-    console.log("✅ Sending response to client")
+    // 7. Return the correct response format
+    const response = {
+      success: true,
+      id: razorpayOrder.id, // This is the actual Razorpay order ID
+      orderId: razorpayOrder.id, // Also provide as orderId for compatibility
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      receipt: razorpayOrder.receipt,
+      status: razorpayOrder.status,
+      keyId: publicKeyId, // Use the public key for frontend
+      isTestMode: keyId.startsWith("rzp_test_"),
+    }
+
+    console.log("✅ Sending response to client:")
+    console.log("- Order ID:", response.id)
+    console.log("- Amount:", response.amount, "paise")
+    console.log("- Test Mode:", response.isTestMode)
+
     return NextResponse.json(response)
   } catch (error: any) {
     console.error("❌ Razorpay API Error:")
@@ -101,6 +134,7 @@ export async function POST(request: Request) {
           error: "Payment gateway error",
           message: error.error.description || error.message,
           code: error.error.code,
+          razorpayError: error.error,
         },
         { status: 400 },
       )
@@ -110,6 +144,7 @@ export async function POST(request: Request) {
       {
         error: "Internal server error",
         message: "Failed to create payment order",
+        details: error.message,
       },
       { status: 500 },
     )

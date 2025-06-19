@@ -128,40 +128,55 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         }),
       })
 
+      console.log("📋 Order API response status:", orderResponse.status)
+
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.json()
+        console.error("❌ Order API error:", errorData)
+        throw new Error(errorData.message || errorData.error || `Payment API returned status ${orderResponse.status}`)
+      }
+
       const orderData_response = await orderResponse.json()
       console.log("📋 Order creation response:", orderData_response)
 
-      if (!orderResponse.ok) {
-        throw new Error(
-          orderData_response.message ||
-            orderData_response.error ||
-            `Payment API returned status ${orderResponse.status}`,
-        )
+      // Step 2: Validate the response
+      if (!orderData_response.success) {
+        console.error("❌ API returned success: false", orderData_response)
+        throw new Error(orderData_response.message || "Payment order creation failed")
       }
 
-      /* Accept either "orderId" or legacy "razorpayOrderId" */
-      const resolvedOrderId = orderData_response.orderId || orderData_response.razorpayOrderId
-
-      if (!orderData_response.success || !resolvedOrderId) {
-        console.error("Unexpected payment API payload:", orderData_response)
-        throw new Error("Invalid response from payment gateway")
+      // Extract the order ID - Razorpay expects 'id' field
+      const razorpayOrderId = orderData_response.id || orderData_response.orderId
+      if (!razorpayOrderId) {
+        console.error("❌ Missing order ID in response:", orderData_response)
+        throw new Error("Invalid response from payment gateway - missing order ID")
       }
 
-      // Step 2: Check if Razorpay is available
+      if (!orderData_response.keyId) {
+        console.error("❌ Missing keyId in response:", orderData_response)
+        throw new Error("Invalid response from payment gateway - missing key ID")
+      }
+
+      console.log("✅ Order validation passed:")
+      console.log("- Order ID:", razorpayOrderId)
+      console.log("- Key ID:", orderData_response.keyId)
+      console.log("- Amount:", orderData_response.amount)
+
+      // Step 3: Check if Razorpay is available
       if (!window.Razorpay) {
         throw new Error("Razorpay payment gateway not loaded")
       }
 
       console.log("🚀 Opening Razorpay payment modal...")
 
-      // Step 3: Configure Razorpay options
+      // Step 4: Configure Razorpay options
       const razorpayOptions = {
         key: orderData_response.keyId,
         amount: orderData_response.amount,
-        currency: orderData_response.currency,
+        currency: orderData_response.currency || "INR",
         name: "Virasat",
         description: "Handwoven Sarees & Traditional Wear",
-        order_id: resolvedOrderId, // ← updated
+        order_id: razorpayOrderId, // This is the critical field
         handler: async (response: any) => {
           console.log("✅ Payment successful:", response)
           await handlePaymentSuccess(response)
@@ -187,7 +202,12 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         },
       }
 
-      // Step 4: Create and open Razorpay instance
+      console.log("🔧 Razorpay options configured:", {
+        ...razorpayOptions,
+        key: "HIDDEN_FOR_SECURITY",
+      })
+
+      // Step 5: Create and open Razorpay instance
       const razorpay = new window.Razorpay(razorpayOptions)
 
       razorpay.on("payment.failed", (response: any) => {
