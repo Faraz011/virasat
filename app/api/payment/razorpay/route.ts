@@ -1,102 +1,109 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
+import { validateRazorpayConfig, getRazorpayInstance } from "@/lib/razorpay-config"
 
 export async function POST(request: Request) {
   try {
-    console.log("=== Razorpay Payment API Called ===")
+    console.log("🚀 Razorpay Payment API - Starting")
 
+    // 1. Authenticate user
     const user = await getCurrentUser()
     if (!user) {
-      console.log("User not authenticated")
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      console.log("❌ User not authenticated")
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    console.log("User authenticated:", user.id)
+    console.log("✅ User authenticated:", user.id)
 
-    const requestBody = await request.json()
-    const { amount, currency = "INR", receipt = `receipt_${Date.now()}` } = requestBody
-
-    console.log("Payment request data:", { amount, currency, receipt })
-
-    if (!amount || amount < 1) {
-      console.error("Invalid amount:", amount)
-      return NextResponse.json({ message: "Invalid amount" }, { status: 400 })
+    // 2. Validate Razorpay configuration
+    const configValidation = validateRazorpayConfig()
+    if (!configValidation.isValid) {
+      console.error("❌ Razorpay configuration invalid:", configValidation.errors)
+      return NextResponse.json(
+        {
+          error: "Payment gateway configuration error",
+          details: configValidation.errors,
+        },
+        { status: 500 },
+      )
     }
 
-    // ---------------------------------------------------------------------------
-    // 1) Read credentials
-    // ---------------------------------------------------------------------------
-    const keyId = process.env.RAZORPAY_KEY_ID
-    const keySecret = process.env.RAZORPAY_KEY_SECRET
-    const publicKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID // may exist in preview
+    console.log("✅ Razorpay configuration valid")
+    console.log("🧪 Test mode:", configValidation.isTestMode)
 
-    // ---------------------------------------------------------------------------
-    // 2) If we have both keys → normal Razorpay flow
-    // ---------------------------------------------------------------------------
-    let order: any
-    if (keyId && keySecret) {
-      const Razorpay = (await import("razorpay")).default
-      const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret })
+    // 3. Parse and validate request
+    const body = await request.json()
+    const { amount, currency = "INR" } = body
 
-      console.log("Creating live Razorpay order …")
-      order = await razorpay.orders.create({
-        amount: Math.round(amount * 100),
-        currency,
-        receipt,
-        notes: { user_id: user.id.toString(), timestamp: new Date().toISOString() },
-      })
-    } else {
-      // -----------------------------------------------------------------------
-      // 3) Missing credentials → sandbox stub so the demo keeps working
-      // -----------------------------------------------------------------------
-      console.warn("⚠️  Razorpay keys are missing – returning stub order for preview.")
-      order = {
-        id: `order_stub_${Date.now()}`,
-        amount: Math.round(amount * 100),
-        currency,
-        receipt,
-        status: "created",
-        _stub: true,
-      }
+    if (!amount || typeof amount !== "number" || amount <= 0) {
+      console.error("❌ Invalid amount:", amount)
+      return NextResponse.json({ error: "Invalid amount provided" }, { status: 400 })
     }
 
-    // ---------------------------------------------------------------------------
-    // 4) Build response (works for both live & stub)
-    // ---------------------------------------------------------------------------
-    const responseData = {
+    console.log("✅ Request validated - Amount:", amount, "Currency:", currency)
+
+    // 4. Create Razorpay order
+    const razorpay = await getRazorpayInstance()
+    const orderOptions = {
+      amount: Math.round(amount * 100), // Convert to paise
+      currency: currency,
+      receipt: `order_${user.id}_${Date.now()}`,
+      notes: {
+        user_id: user.id.toString(),
+        created_at: new Date().toISOString(),
+      },
+    }
+
+    console.log("📝 Creating Razorpay order with options:", {
+      ...orderOptions,
+      amount: `${orderOptions.amount} paise (₹${amount})`,
+    })
+
+    const razorpayOrder = await razorpay.orders.create(orderOptions)
+
+    console.log("✅ Razorpay order created successfully:")
+    console.log("- Order ID:", razorpayOrder.id)
+    console.log("- Amount:", razorpayOrder.amount, "paise")
+    console.log("- Currency:", razorpayOrder.currency)
+    console.log("- Status:", razorpayOrder.status)
+
+    // 5. Return response
+    const response = {
       success: true,
-      keyId: keyId || publicKey || "rzp_test_stubkey",
-      razorpayOrderId: order.id,
-      amount: order.amount,
-      currency: order.currency,
-      receipt: order.receipt,
-      status: order.status,
-      isTestMode: (keyId || publicKey || "").startsWith("rzp_test_") || !!order._stub,
+      orderId: razorpayOrder.id,
+      amount: razorpayOrder.amount,
+      currency: razorpayOrder.currency,
+      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      isTestMode: configValidation.isTestMode,
     }
 
-    return NextResponse.json(responseData)
+    console.log("✅ Sending response to client")
+    return NextResponse.json(response)
   } catch (error: any) {
-    console.error("=== Razorpay API Error ===")
-    console.error("Error type:", error.constructor.name)
-    console.error("Error message:", error.message)
-    console.error("Error stack:", error.stack)
+    console.error("❌ Razorpay API Error:")
+    console.error("- Type:", error.constructor.name)
+    console.error("- Message:", error.message)
+    console.error("- Stack:", error.stack)
 
-    // Check if it's a Razorpay specific error
-    if (error.statusCode) {
-      console.error("Razorpay error code:", error.statusCode)
-      console.error("Razorpay error description:", error.error?.description)
+    // Handle Razorpay specific errors
+    if (error.statusCode && error.error) {
+      console.error("- Razorpay Error Code:", error.statusCode)
+      console.error("- Razorpay Error:", error.error)
+
+      return NextResponse.json(
+        {
+          error: "Payment gateway error",
+          message: error.error.description || error.message,
+          code: error.error.code,
+        },
+        { status: 400 },
+      )
     }
 
     return NextResponse.json(
       {
-        success: false,
+        error: "Internal server error",
         message: "Failed to create payment order",
-        error: error.message,
-        debug: {
-          errorType: error.constructor.name,
-          statusCode: error.statusCode,
-          razorpayError: error.error,
-        },
       },
       { status: 500 },
     )

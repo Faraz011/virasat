@@ -1,55 +1,69 @@
 import { NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
 import { createOrder } from "@/lib/orders"
-import { config, validateEnvironmentVariables } from "@/lib/config"
+import { validateRazorpayConfig } from "@/lib/razorpay-config"
 import crypto from "crypto"
 
 export async function POST(request: Request) {
   try {
-    console.log("=== Payment Verification API Called ===")
+    console.log("🔐 Razorpay Payment Verification - Starting")
 
-    // Validate environment variables
-    try {
-      validateEnvironmentVariables()
-    } catch (error: any) {
-      console.error("Environment validation failed:", error.message)
-      return NextResponse.json({ message: "Server configuration error. Please contact support." }, { status: 500 })
-    }
-
+    // 1. Authenticate user
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+      console.log("❌ User not authenticated")
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderData } = await request.json()
+    console.log("✅ User authenticated:", user.id)
 
-    console.log("Verification data:", {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature: razorpay_signature ? "PROVIDED" : "MISSING",
-      orderData: orderData ? "PROVIDED" : "MISSING",
-      mode: config.razorpay.isTestMode ? "TEST" : "LIVE",
-    })
+    // 2. Validate Razorpay configuration
+    const configValidation = validateRazorpayConfig()
+    if (!configValidation.isValid) {
+      console.error("❌ Razorpay configuration invalid:", configValidation.errors)
+      return NextResponse.json({ error: "Payment gateway configuration error" }, { status: 500 })
+    }
 
-    // Verify the payment signature
-    const body = razorpay_order_id + "|" + razorpay_payment_id
-    const expectedSignature = crypto
-      .createHmac("sha256", config.razorpay.keySecret)
-      .update(body.toString())
+    // 3. Parse request body
+    const body = await request.json()
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderData } = body
+
+    console.log("📝 Verification request:")
+    console.log("- Order ID:", razorpay_order_id)
+    console.log("- Payment ID:", razorpay_payment_id)
+    console.log("- Signature:", razorpay_signature ? "Present" : "Missing")
+    console.log("- Order Data:", orderData ? "Present" : "Missing")
+
+    // 4. Validate required fields
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      console.error("❌ Missing required payment verification fields")
+      return NextResponse.json({ error: "Missing payment verification data" }, { status: 400 })
+    }
+
+    // 5. Verify payment signature
+    const body_string = razorpay_order_id + "|" + razorpay_payment_id
+    const expected_signature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+      .update(body_string)
       .digest("hex")
 
-    const isAuthentic = expectedSignature === razorpay_signature
+    const is_authentic = expected_signature === razorpay_signature
 
-    console.log("Signature verification:", isAuthentic ? "SUCCESS" : "FAILED")
+    console.log("🔐 Signature verification:", is_authentic ? "✅ Valid" : "❌ Invalid")
 
-    if (!isAuthentic) {
-      console.error("Payment signature verification failed")
-      return NextResponse.json({ message: "Payment verification failed" }, { status: 400 })
+    if (!is_authentic) {
+      console.error("❌ Payment signature verification failed")
+      return NextResponse.json({ error: "Payment verification failed" }, { status: 400 })
     }
 
-    // Create the order in our database
-    console.log("Creating order in database...")
-    const order = await createOrder({
+    // 6. Create order in database
+    if (!orderData) {
+      console.error("❌ Order data missing for database creation")
+      return NextResponse.json({ error: "Order data missing" }, { status: 400 })
+    }
+
+    console.log("💾 Creating order in database...")
+    const dbOrder = await createOrder({
       userId: user.id,
       total: orderData.total,
       items: orderData.items,
@@ -60,36 +74,39 @@ export async function POST(request: Request) {
       razorpayPaymentId: razorpay_payment_id,
     })
 
-    console.log("Database order created:", order.id)
+    console.log("✅ Order created in database:", dbOrder.id)
 
-    // Clear the user's cart after successful order
+    // 7. Clear user's cart (optional)
     try {
-      await fetch(`${config.app.url}/api/cart/clear`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: request.headers.get("cookie") || "",
-        },
-      })
-      console.log("Cart cleared successfully")
+      // You can implement cart clearing here if needed
+      console.log("🛒 Cart clearing skipped (implement if needed)")
     } catch (cartError) {
-      console.error("Failed to clear cart:", cartError)
+      console.warn("⚠️ Cart clearing failed:", cartError)
       // Don't fail the order creation if cart clearing fails
     }
 
-    return NextResponse.json({
-      message: "Payment verified successfully",
-      orderId: order.id,
+    // 8. Return success response
+    const response = {
+      success: true,
+      orderId: dbOrder.id,
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
-      isTestMode: config.razorpay.isTestMode,
-    })
+      isTestMode: configValidation.isTestMode,
+      message: "Payment verified and order created successfully",
+    }
+
+    console.log("✅ Payment verification completed successfully")
+    return NextResponse.json(response)
   } catch (error: any) {
-    console.error("Payment verification error:", error)
+    console.error("❌ Payment Verification Error:")
+    console.error("- Type:", error.constructor.name)
+    console.error("- Message:", error.message)
+    console.error("- Stack:", error.stack)
+
     return NextResponse.json(
       {
-        message: "Payment verification failed",
-        error: process.env.NODE_ENV === "development" ? error.message : "Internal server error",
+        error: "Payment verification failed",
+        message: "Internal server error during payment verification",
       },
       { status: 500 },
     )
