@@ -25,6 +25,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
   const [isLoading, setIsLoading] = useState(false)
   const [isScriptLoaded, setIsScriptLoaded] = useState(false)
   const [isTestMode, setIsTestMode] = useState<boolean | null>(null)
+  const [debugInfo, setDebugInfo] = useState<string | null>(null)
 
   const handleScriptLoad = () => {
     setIsScriptLoaded(true)
@@ -79,12 +80,15 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
     }
 
     setIsLoading(true)
+    setDebugInfo(null)
 
     try {
       console.log("=== Starting Razorpay payment process ===")
       console.log("Amount:", amount)
+      console.log("Order data:", orderData)
 
       // Step 1: Create Razorpay order
+      console.log("Calling Razorpay API...")
       const response = await fetch("/api/payment/razorpay", {
         method: "POST",
         headers: {
@@ -98,25 +102,64 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         }),
       })
 
-      const data = await response.json()
-      console.log("Razorpay API response:", data)
+      console.log("API Response status:", response.status)
+      console.log("API Response headers:", Object.fromEntries(response.headers.entries()))
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to create payment order")
+      // Get response text first for debugging
+      const responseText = await response.text()
+      console.log("Raw API response:", responseText)
+
+      let data
+      try {
+        data = JSON.parse(responseText)
+        console.log("Parsed API response:", data)
+      } catch (parseError) {
+        console.error("Failed to parse API response:", parseError)
+        setDebugInfo(`Raw API Response: ${responseText}`)
+        throw new Error("Invalid response format from payment API")
       }
 
+      if (!response.ok) {
+        console.error("API Error Response:", data)
+        setDebugInfo(`API Error: ${JSON.stringify(data, null, 2)}`)
+        throw new Error(data.message || `API Error: ${response.status}`)
+      }
+
+      // Check for success flag
+      if (data.success === false) {
+        console.error("API returned success: false", data)
+        setDebugInfo(`API Response: ${JSON.stringify(data, null, 2)}`)
+        throw new Error(data.message || "Payment API returned failure")
+      }
+
+      // Validate required fields
+      console.log("Validating API response fields...")
+      console.log("- razorpayOrderId:", data.razorpayOrderId)
+      console.log("- keyId:", data.keyId ? "EXISTS" : "MISSING")
+      console.log("- amount:", data.amount)
+
       if (!data.razorpayOrderId) {
-        throw new Error("Missing Razorpay order ID")
+        console.error("Missing razorpayOrderId in response:", data)
+        setDebugInfo(`Missing Order ID. Full Response: ${JSON.stringify(data, null, 2)}`)
+        throw new Error("Payment order creation failed. Missing Razorpay order ID.")
+      }
+
+      if (!data.keyId) {
+        console.error("Missing keyId in response:", data)
+        setDebugInfo(`Missing Key ID. Full Response: ${JSON.stringify(data, null, 2)}`)
+        throw new Error("Payment gateway configuration error. Missing key ID.")
       }
 
       // Set test mode indicator
       setIsTestMode(data.isTestMode || false)
 
+      // Check if Razorpay script is loaded
       if (!window.Razorpay) {
-        throw new Error("Razorpay script not loaded")
+        console.error("Razorpay script not loaded")
+        throw new Error("Payment gateway script not loaded. Please refresh and try again.")
       }
 
-      console.log("Initializing Razorpay payment...")
+      console.log("All validations passed. Initializing Razorpay payment...")
       console.log("Mode:", data.isTestMode ? "TEST" : "LIVE")
 
       // Step 2: Initialize Razorpay payment
@@ -157,7 +200,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
 
             toast({
               title: "Payment successful!",
-              description: `Your order has been placed successfully. ${verifyData.isTestMode ? "(Test Mode)" : ""}`,
+              description: `Your order has been placed successfully. ${data.isTestMode ? "(Test Mode)" : ""}`,
             })
 
             onSuccess(verifyData.orderId)
@@ -185,7 +228,11 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         },
       }
 
-      console.log("Opening Razorpay payment modal...")
+      console.log("Creating Razorpay instance with options:", {
+        ...options,
+        key: "HIDDEN_FOR_SECURITY",
+      })
+
       const razorpay = new window.Razorpay(options)
 
       razorpay.on("payment.failed", (response: any) => {
@@ -194,6 +241,7 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
         onError(response.error.description || "Payment failed")
       })
 
+      console.log("Opening Razorpay payment modal...")
       razorpay.open()
     } catch (error: any) {
       console.error("Payment initialization error:", error)
@@ -241,6 +289,15 @@ export function RazorpayPayment({ amount, orderData, onSuccess, onError }: Razor
       {isTestMode && (
         <div className="text-xs text-center text-gray-500 bg-yellow-50 p-2 rounded">
           💡 Test Mode: Use test card numbers for payment testing
+          <br />
+          Card: 4111 1111 1111 1111 | CVV: Any 3 digits | Expiry: Any future date
+        </div>
+      )}
+
+      {debugInfo && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm font-medium text-red-800">Debug Information:</p>
+          <pre className="mt-1 text-xs overflow-auto max-h-32 text-red-700 whitespace-pre-wrap">{debugInfo}</pre>
         </div>
       )}
     </div>
