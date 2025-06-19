@@ -91,16 +91,14 @@ export async function createOrder(orderData: OrderData) {
       console.log("📍 Saving shipping address...")
       await saveAddress({
         user_id: orderData.userId,
-        type: "shipping",
         first_name: orderData.shippingAddress.firstName,
         last_name: orderData.shippingAddress.lastName,
         address_line_1: orderData.shippingAddress.address,
         city: orderData.shippingAddress.city,
         state: orderData.shippingAddress.state,
         postal_code: orderData.shippingAddress.postalCode,
-        country: "India", // Default to India
+        country: "India",
         phone: orderData.shippingAddress.phone,
-        is_default: false, // Don't set as default automatically
       })
       console.log("✅ Shipping address saved")
     } catch (addressError) {
