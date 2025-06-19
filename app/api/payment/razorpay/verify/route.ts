@@ -40,25 +40,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Payment verification failed" }, { status: 400 })
     }
 
-    // Now create the order in our database
-    let order
-    if (orderData) {
-      console.log("Creating order in database...")
-      order = await createOrder({
-        userId: user.id,
-        total: orderData.amount || orderData.total,
-        items: orderData.items,
-        shippingAddress: orderData.shippingAddress,
-        paymentMethod: "razorpay",
-        paymentStatus: "paid",
-        razorpayOrderId: razorpay_order_id,
-      })
-      console.log("Database order created:", order.id)
-    }
+    // Create the order in our database
+    console.log("Creating order in database...")
+    const order = await createOrder({
+      userId: user.id,
+      total: orderData.total,
+      items: orderData.items,
+      shippingAddress: orderData.shippingAddress,
+      paymentMethod: "razorpay",
+      paymentStatus: "paid",
+      razorpayOrderId: razorpay_order_id,
+    })
+
+    console.log("Database order created:", order.id)
+
+    // Clear the user's cart after successful order
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/cart/clear`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: request.headers.get("cookie") || "",
+      },
+    })
 
     return NextResponse.json({
       message: "Payment verified successfully",
-      orderId: order?.id,
+      orderId: order.id,
       razorpayOrderId: razorpay_order_id,
       razorpayPaymentId: razorpay_payment_id,
     })

@@ -43,34 +43,17 @@ export async function POST(request: Request) {
       key_secret: keySecret,
     })
 
-    // Create Razorpay order with try-catch
+    // Create Razorpay order
     console.log("Creating Razorpay order...")
-    let order
-    try {
-      order = await razorpay.orders.create({
-        amount: Math.round(amount * 100), // amount in paise, ensure it's an integer
-        currency,
-        receipt,
-      })
-      console.log("Razorpay order created successfully:", order)
-    } catch (orderError: any) {
-      console.error("Failed to create Razorpay order:", orderError)
-      return NextResponse.json(
-        {
-          message: "Failed to create payment order with Razorpay",
-          error: orderError.description || orderError.message,
-        },
-        { status: 500 },
-      )
-    }
+    const order = await razorpay.orders.create({
+      amount: Math.round(amount * 100), // amount in paise
+      currency,
+      receipt,
+    })
 
-    // Validate order object
-    if (!order || !order.id) {
-      console.error("Invalid order response from Razorpay:", order)
-      return NextResponse.json({ message: "Invalid response from payment gateway" }, { status: 500 })
-    }
+    console.log("Razorpay order created successfully:", order)
 
-    // Prepare response
+    // Return the response
     const responseData = {
       keyId: keyId,
       razorpayOrderId: order.id,
@@ -79,17 +62,13 @@ export async function POST(request: Request) {
     }
 
     console.log("Sending response:", responseData)
-
-    // Return the response with the EXACT field name razorpayOrderId
     return NextResponse.json(responseData)
   } catch (error: any) {
-    console.error("=== Unexpected error in Razorpay API ===")
+    console.error("=== Razorpay API Error ===")
     console.error("Error:", error)
-    console.error("Stack:", error.stack)
-
     return NextResponse.json(
       {
-        message: "An unexpected error occurred while processing your payment request",
+        message: "Failed to create payment order",
         error: error.message,
       },
       { status: 500 },
