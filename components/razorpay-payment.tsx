@@ -77,3 +77,6 @@ const RazorpayPayment: React.FC<RazorpayPaymentProps> = ({ amount, currency, rec
 }
 
 export default RazorpayPayment
+
+// Also export a named version for `import { RazorpayPayment } from "@/components/razorpay-payment"`
+export { RazorpayPayment }
