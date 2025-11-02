@@ -21,67 +21,99 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
   return {
     title: `${category.name} Sarees - Virasat`,
-    description: category.description || `Explore our collection of ${category.name} sarees`,
+    description: `Explore our collection of authentic ${category.name} chanderi sarees. Handcrafted with traditional techniques.`
   }
 }
 
 // Category-specific content
 const categoryContent = {
-  "banarasi-silk": {
-    title: "Banarasi Silk Tradition",
-    subtitle: "The Royal Heritage of Varanasi",
+  "katan-silk": {
+    title: "Katan Silk Collection",
+    subtitle: "The Pure Silk Elegance",
     description:
-      "Banarasi silk sarees are known for their gold and silver zari work, intricate designs, and opulent appearance. These sarees are woven in Varanasi and have been a symbol of luxury for centuries.",
+      "Katan silk sarees are crafted from pure silk threads, known for their smooth texture and rich appearance. These sarees are perfect for special occasions and weddings.",
     features: [
-      "Gold and silver zari work",
-      "Intricate floral and paisley motifs",
-      "Rich, opulent pallu designs",
-      "Traditional wedding attire",
+      "100% pure silk fabric",
+      "Intricate zari work",
+      "Rich and luxurious drape",
+      "Perfect for bridal wear",
     ],
+    uniqueCharacteristics: [
+      "Made from pure twisted silk threads (katah in Hindi)",
+      "Distinctive fine texture with a natural sheen",
+      "Lightweight yet durable fabric",
+      "Minimal stretch compared to other silks"
+    ],
+    weavingTechnique: "Katan silk is created by twisting two pure silk threads together (2-ply) before weaving, which gives it strength and a distinctive texture. The weavers use traditional handlooms with a unique pit shuttle technique that creates the characteristic fine texture.",
+    occasions: ["Weddings", "Bridal wear", "Festivals", "Formal events", "Religious ceremonies"],
     history:
-      "The art of Banarasi silk weaving dates back to the Mughal era. The intricate designs were inspired by Mughal architecture and Persian motifs, creating a unique blend of cultures.",
+      "Katan silk weaving is an ancient craft that originated in the royal courts of India. The pure silk threads create a fabric that is both durable and lustrous, making it a favorite for traditional attire.",
   },
-  kanjivaram: {
-    title: "Kanjivaram Silk Legacy",
-    subtitle: "The Pride of Tamil Nadu",
+  "pattu-silk": {
+    title: "Pattu Silk Collection",
+    subtitle: "The Royal Weave",
     description:
-      "Kanjivaram (or Kanchipuram) silk sarees are known for their durability, pure mulberry silk, and vibrant colors. These sarees feature contrasting borders and are considered auspicious for weddings and special occasions.",
+      "Pattu silk sarees are known for their rich texture and vibrant colors. These sarees feature intricate zari work and are a symbol of South Indian tradition and culture.",
     features: [
-      "Pure mulberry silk",
-      "Contrasting borders and pallus",
-      "Temple designs and motifs",
-      "Zari work with pure gold threads",
+      "Rich silk fabric",
+      "Heavy zari borders",
+      "Traditional temple designs",
+      "Ideal for festivals and weddings",
     ],
+    uniqueCharacteristics: [
+      "Heavyweight fabric with a rich fall",
+      "Intricate temple motifs and checks",
+      "Wide contrast borders (jari or zari work)",
+      "Vibrant traditional colors"
+    ],
+    weavingTechnique: "Pattu silk is woven using pure mulberry silk threads with real gold or silver zari. The special korvai technique is used to create contrast borders, where the border and body are woven separately and then interlocked. The traditional pit looms create the characteristic tight weave.",
+    occasions: ["Temple festivals", "South Indian weddings", "Classical dance performances", "Traditional ceremonies", "Pongal celebrations"],
     history:
-      "The weaving tradition of Kanchipuram dates back to the Chola dynasty. The weavers, who were originally from Andhra Pradesh, settled in Kanchipuram over 400 years ago and developed this distinctive style.",
+      "Pattu silk has been woven in South India for centuries, with each region developing its own distinctive style. The rich colors and intricate designs make these sarees a timeless classic.",
   },
-  chanderi: {
-    title: "Chanderi Weaving Art",
-    subtitle: "The Sheer Elegance of Madhya Pradesh",
+  "masrise-silk": {
+    title: "Masrise Silk Collection",
+    subtitle: "The Art of Fine Weaving",
     description:
-      "Chanderi sarees are known for their lightweight, sheer texture and delicate work. These sarees are woven with a mix of silk and cotton, creating a subtle sheen and comfortable drape.",
+      "Masrise silk sarees are known for their fine texture and elegant drape. These sarees feature delicate patterns and are perfect for both formal and casual occasions.",
     features: [
-      "Lightweight and sheer texture",
-      "Subtle sheen and transparency",
-      "Traditional butis and motifs",
-      "Comfortable for all seasons",
+      "Lightweight silk fabric",
+      "Delicate zari accents",
+      "Subtle sheen",
+      "Comfortable for all-day wear",
     ],
+    uniqueCharacteristics: [
+      "Matte finish with a soft luster",
+      "Breathable and comfortable",
+      "Minimalist designs with subtle patterns",
+      "Eco-friendly dyeing processes"
+    ],
+    weavingTechnique: "Masrise silk is created using a special type of silk thread that's less twisted than regular silk, giving it a unique texture. The weaving involves a combination of plain weave and twill patterns, with extra weft threads creating subtle designs. The process often uses natural dyes for an eco-friendly touch.",
+    occasions: ["Daytime events", "Office wear", "Cocktail parties", "Festive gatherings", "Cultural events"],
     history:
-      "The weaving tradition of Chanderi began in the 13th century and flourished under the patronage of the Bundela Rajputs. The unique quality of Chanderi is attributed to the special quality of water in the region.",
+      "Masrise silk weaving is a traditional craft that has been passed down through generations. The fine quality of the silk and the intricate weaving techniques make these sarees truly special.",
   },
-  jamdani: {
-    title: "Jamdani Weaving Mastery",
-    subtitle: "The Poetic Expression of Bengal",
+  "block-print": {
+    title: "Block Print Collection",
+    subtitle: "Traditional Artistry",
     description:
-      "Jamdani sarees are known for their intricate hand-woven patterns on fine cotton. This technique creates motifs that appear to float on the surface of the fabric, giving it a distinctive look.",
+      "Block print sarees showcase the rich tradition of hand-block printing. Each piece is a work of art, featuring unique patterns and vibrant colors.",
     features: [
-      "Hand-woven floral and geometric patterns",
-      "Fine cotton or muslin base",
-      "Discontinuous weft technique",
-      "Lightweight and comfortable",
+      "Hand-block printed",
+      "Natural dyes",
+      "Unique patterns",
+      "Light and comfortable",
     ],
+    uniqueCharacteristics: [
+      "Each piece is one-of-a-kind",
+      "Eco-friendly production process",
+      "Breathable natural fabrics",
+      "Artisanal imperfections that add character"
+    ],
+    weavingTechnique: "Block printing involves hand-carved wooden blocks that are dipped in natural dyes and pressed onto fabric. The process includes several stages: washing, printing, drying, and sometimes additional hand-painting. The dabu printing technique uses a special mud-resist method to create intricate designs. Each color requires a separate block and drying time, making it a time-intensive process.",
+    occasions: ["Casual outings", "Daytime events", "Beach weddings", "Summer parties", "Boho-chic styling"],
     history:
-      "Jamdani weaving is one of the oldest weaving techniques in Bengal, dating back to the Mughal era. It was recognized as a UNESCO Intangible Cultural Heritage in 2013, highlighting its cultural significance.",
+      "Block printing is an ancient art form that has been practiced in India for centuries. Each block is hand-carved, and the printing is done manually, making each piece unique. The craft has been passed down through generations, with each region developing its own distinctive style and motifs.",
   },
 }
 
@@ -260,8 +292,8 @@ export default async function CategoryPage({ params }: { params: { slug: string 
 
 // Category links for related categories section
 const categoryLinks = [
-  { name: "Banarasi Silk", href: "/categories/banarasi-silk" },
-  { name: "Kanjivaram", href: "/categories/kanjivaram" },
-  { name: "Chanderi", href: "/categories/chanderi" },
-  { name: "Jamdani", href: "/categories/jamdani" },
+  { name: "Katan Silk", href: "/categories/katan-silk" },
+  { name: "Pattu Silk", href: "/categories/pattu-silk" },
+  { name: "Masrise Silk", href: "/categories/masrise-silk" },
+  { name: "Block Print", href: "/categories/block-print" },
 ]

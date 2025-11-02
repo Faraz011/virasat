@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { ProductCard } from "@/components/product-card"
+import { KenBurnsHero } from "@/components/hero-section"
 
 // Sample testimonials data
 const testimonials = [
@@ -36,60 +37,41 @@ export default async function HomePage() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/30 z-10" />
-          <div className="relative h-[400px] md:h-[600px] w-full overflow-hidden">
-            <img
-              src="/placeholder.svg?height=600&width=1920"
-              alt="Handwoven Banarasi Silk Saree"
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <div className="absolute inset-0 flex items-center z-20">
-            <div className="container px-4 md:px-6">
-              <div className="max-w-lg space-y-4 text-white">
-                <Badge className="bg-primary/80 text-primary-foreground hover:bg-primary/70">Heritage Collection</Badge>
-                <h1 className="text-3xl font-serif font-bold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
-                  Handwoven Elegance
-                </h1>
-                <p className="text-base md:text-lg opacity-90">
-                  Discover the timeless beauty of handcrafted sarees, woven with tradition and passion by master
-                  artisans.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                  <Button size="lg" className="bg-white text-black hover:bg-white/90 w-full sm:w-auto" asChild>
-                    <Link href="/shop/featured">
-                      Explore Collection
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="text-white border-white hover:bg-white/10 w-full sm:w-auto"
-                  >
-                    Our Story
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <KenBurnsHero />
         </section>
 
         {/* USP Section */}
-        <section className="py-6 md:py-8 bg-muted/30">
+        <section className="py-12 md:py-16 bg-secondary/30">
           <div className="container px-4 md:px-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-              <div className="p-4 border-b md:border-b-0 md:border-r border-muted-foreground/10 last:border-0">
-                <h3 className="font-medium">100% Authentic Handloom</h3>
-                <p className="text-sm text-muted-foreground">Certified handwoven sarees from traditional looms</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="relative group bg-background p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 border border-border/50">
+                <div className="w-10 h-1 bg-primary mb-4"></div>
+                <h3 className="font-serif text-xl font-bold text-foreground mb-2">
+                  100% Authentic Handloom
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Certified handwoven sarees from traditional looms
+                </p>
               </div>
-              <div className="p-4 border-b md:border-b-0 md:border-r border-muted-foreground/10 last:border-0">
-                <h3 className="font-medium">Supporting 200+ Artisan Families</h3>
-                <p className="text-sm text-muted-foreground">Direct from weavers to your wardrobe</p>
+
+              <div className="relative group bg-background p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 border border-border/50">
+                <div className="w-10 h-1 bg-primary mb-4"></div>
+                <h3 className="font-serif text-xl font-bold text-foreground mb-2">
+                  Supporting 200+ Artisan Families
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Direct from weavers to your wardrobe
+                </p>
               </div>
-              <div className="p-4">
-                <h3 className="font-medium">Sustainable & Ethical Practices</h3>
-                <p className="text-sm text-muted-foreground">Preserving heritage with eco-friendly methods</p>
+
+              <div className="relative group bg-background p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 border border-border/50">
+                <div className="w-10 h-1 bg-primary mb-4"></div>
+                <h3 className="font-serif text-xl font-bold text-foreground mb-2">
+                  Sustainable & Ethical Practices
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Preserving heritage with eco-friendly methods
+                </p>
               </div>
             </div>
           </div>
@@ -138,7 +120,7 @@ export default async function HomePage() {
         </section>
 
         {/* Featured Products */}
-        <section className="py-12 md:py-16 bg-muted/20">
+        <section className="py-12 md:py-16 bg-secondary/30">
           <div className="container">
             <div className="flex flex-col gap-2 mb-8 text-center">
               <h2 className="text-3xl font-serif font-bold tracking-tight">Curated Collection</h2>
@@ -168,7 +150,7 @@ export default async function HomePage() {
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div className="relative h-[400px] rounded-lg overflow-hidden">
                 <img
-                  src="/placeholder.svg?height=400&width=600"
+                  src="/weavers_img.png"
                   alt="Master weaver at work"
                   className="h-full w-full object-cover"
                 />

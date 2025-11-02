@@ -11,6 +11,8 @@
   "dependencies": {
     "@aws-sdk/client-rds-data": "latest",
     "@cloudflare/workers-types": "latest",
+    "@coreui/coreui": "^5.4.3",
+    "@coreui/react": "^5.9.1",
     "@electric-sql/pglite": "latest",
     "@hookform/resolvers": "latest",
     "@libsql/client": "latest",
@@ -67,6 +69,7 @@
     "drizzle-orm": "latest",
     "embla-carousel-react": "8.5.1",
     "expo-sqlite": "latest",
+    "gatsby": "^5.15.0",
     "gel": "latest",
     "input-otp": "1.4.1",
     "jose": "latest",
@@ -99,6 +102,6 @@
     "@types/react-dom": "^19",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }

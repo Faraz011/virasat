@@ -12,23 +12,23 @@ export const metadata = {
 // Main category types we want to feature
 const featuredCategoryTypes = [
   {
-    slug: "banarasi-silk",
-    name: "Banarasi Silk",
+    slug: "Katan-silk",
+    name: "Katan Silk",
     description: "Luxurious silk sarees from Varanasi known for their gold and silver brocade or zari work.",
   },
   {
-    slug: "kanjivaram",
-    name: "Kanjivaram",
+    slug: "Pattu-silk",
+    name: "Pattu silk",
     description: "Traditional silk sarees from Kanchipuram, Tamil Nadu, known for their durability and vibrant colors.",
   },
   {
-    slug: "chanderi",
-    name: "Chanderi",
+    slug: "Masrise Silk",
+    name: "Masrise Silk",
     description: "Lightweight sarees with a sheer texture, featuring traditional motifs and zari borders.",
   },
   {
-    slug: "jamdani",
-    name: "Jamdani",
+    slug: "Block Print",
+    name: "Block Print",
     description: "Fine muslin sarees with intricate hand-woven floral or geometric patterns.",
   },
 ]
@@ -50,10 +50,10 @@ export default async function CategoriesPage() {
   return (
     <div className="container py-6 md:py-8 px-4 md:px-6">
       <div className="flex flex-col gap-2 mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">Saree Categories</h1>
+        <h1 className="text-2xl md:text-3xl font-serif font-bold tracking-tight">Chanderi sarees</h1>
         <p className="text-muted-foreground max-w-3xl">
-          Explore our collection of authentic handwoven sarees by category. Each category represents a unique weaving
-          tradition from different regions of India.
+          Explore our collection of authentic handwoven chanderi sarees. Each category uses different raw material.
+          
         </p>
       </div>
 
@@ -117,18 +117,7 @@ export default async function CategoriesPage() {
               </div>
             </div>
 
-            {/* Featured Products from this Category */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {category.products.length > 0 ? (
-                category.products.map((product) => <ProductCard key={product.id} product={product} />)
-              ) : (
-                <div className="col-span-full text-center py-8">
-                  <p className="text-muted-foreground">No products available in this category yet.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Features or Characteristics of this Category */}
+          {/* Features or Characteristics of this Category */}
             <div className="mt-12 grid md:grid-cols-3 gap-6">
               <div className="bg-background rounded-lg p-6 shadow-sm">
                 <h4 className="font-medium mb-2">Unique Characteristics</h4>
